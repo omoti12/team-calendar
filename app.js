@@ -161,25 +161,23 @@ function renderList() {
     const total = site.tasks.length;
     const alerts = siteAlerts(site);
     const overdue = alerts.some((a) => a.level === 'overdue');
-    li.className = 'site-row' + (done ? ' is-done' : '') + (alerts.length ? ' is-warn' : '');
+    li.className = 'folder' + (done ? ' is-done' : '') + (alerts.length ? ' is-warn' : '');
     li.tabIndex = 0;
     li.innerHTML = `
-      <svg class="folder-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2h8.4A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>
-      <div class="info">
+      <div class="folder-tab">${alerts.length
+        ? `⚠️ ${overdue ? '期限切れ' : '期限間近'} ${alerts.length}件`
+        : done ? '✓ 完了' : '未完了'}</div>
+      <div class="folder-body">
         <div class="name"></div>
         <div class="work"></div>
         <div class="sub"></div>
-      </div>
-      <div class="prog">
-        <span class="count">${doneCount(site)}/${total}</span>
-        <div class="bar"><span style="width:${total ? (doneCount(site) / total) * 100 : 0}%"></span></div>
-      </div>
-      ${alerts.length
-        ? `<span class="pill warn">⚠️ <span class="pill-label">${overdue ? '期限切れ' : '期限間近'} </span>${alerts.length}件</span>`
-        : `<span class="pill ${done ? 'done' : 'open'}">${done ? '完了' : '未完了'}</span>`}
-      <span class="chev" aria-hidden="true">›</span>`;
+        <div class="folder-foot">
+          <div class="bar"><span style="width:${total ? (doneCount(site) / total) * 100 : 0}%"></span></div>
+          <span class="count">${doneCount(site)}/${total}</span>
+        </div>
+      </div>`;
     li.querySelector('.name').textContent = site.name;
-    li.querySelector('.work').textContent = site.workDate ? '工事実行日 ' + workDateLabel(site) : '工事実行日 未定';
+    li.querySelector('.work').textContent = site.workDate ? '工事 ' + workDateLabel(site) : '工事実行日 未定';
     li.querySelector('.work').classList.toggle('is-unset', !site.workDate);
     li.querySelector('.sub').textContent = !total ? '項目なし'
       : done ? 'すべて完了'
