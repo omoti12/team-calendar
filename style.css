@@ -1,0 +1,121 @@
+:root {
+  --bg: #f4f5f7;
+  --card: #fff;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --line: #d6d9de;
+  --accent: #2563eb;
+  --done: #16a34a;
+  --done-bg: #dcfce7;
+  --open: #b45309;
+  --open-bg: #fef3c7;
+  --danger: #dc2626;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
+  font-size: 16px;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+
+.app-header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.app-header h1 { flex: 1; margin: 0; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.icon-btn { background: none; border: none; font-size: 18px; padding: 4px 8px; color: var(--accent); }
+
+.menu {
+  position: fixed; right: 12px; top: 52px; z-index: 20;
+  display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+}
+.menu button, .menu-file { background: none; border: none; padding: 12px 16px; text-align: left; cursor: pointer; }
+.menu button + button, .menu-file + button, .menu button + .menu-file { border-top: 1px solid var(--line); }
+
+main { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+.search-row input, .add-site input, .site-name, #siteNotes {
+  width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+}
+.filter-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+.chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.site-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.site-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+}
+.site-item:hover { border-color: var(--accent); }
+.site-item .icon { font-size: 22px; }
+.site-item .info { flex: 1; min-width: 0; }
+.site-item .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-item .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.badge.done { background: var(--done-bg); color: var(--done); }
+.badge.open { background: var(--open-bg); color: var(--open); }
+.empty { color: var(--muted); text-align: center; padding: 24px 0; }
+
+.add-site { display: flex; gap: 8px; margin-top: 16px; }
+.add-site button, .add-task {
+  white-space: nowrap; padding: 12px 16px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600;
+}
+
+.site-meta { margin-bottom: 16px; }
+.site-name { font-size: 20px; font-weight: 700; }
+.progress { height: 8px; background: var(--line); border-radius: 999px; margin-top: 12px; overflow: hidden; }
+#progressBar { height: 100%; width: 0; background: var(--done); transition: width .2s; }
+.progress-text { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+
+/* 紙の枠に合わせた表 */
+.checklist { width: 100%; border-collapse: collapse; background: var(--card); border: 1.5px solid #555; }
+.checklist th, .checklist td { border: 1px solid #888; padding: 6px 8px; vertical-align: middle; }
+.checklist th { background: #eef0f3; font-size: 13px; font-weight: 600; text-align: left; }
+.checklist .col-date { width: 150px; }
+.checklist .col-status { width: 88px; text-align: center; }
+.checklist .col-del { width: 36px; text-align: center; }
+.checklist tr.is-done .task-title { color: var(--muted); text-decoration: line-through; }
+.task-title, .task-note, .task-date {
+  width: 100%; border: none; background: transparent; padding: 4px 0; resize: none; overflow: hidden;
+}
+.task-title { font-size: 16px; line-height: 1.4; }
+.task-note { font-size: 13px; color: var(--muted); }
+.task-title:focus, .task-note:focus, .task-date:focus { outline: 2px solid #bfdbfe; border-radius: 4px; }
+.status-btn { width: 100%; border: none; border-radius: 6px; padding: 8px 4px; font-size: 14px; font-weight: 600; }
+.status-btn.done { background: var(--done-bg); color: var(--done); }
+.status-btn.open { background: var(--open-bg); color: var(--open); }
+.del-btn { border: none; background: none; color: var(--muted); font-size: 18px; }
+.del-btn:hover { color: var(--danger); }
+
+.add-task { margin-top: 12px; width: 100%; }
+.notes-label { display: block; margin: 20px 0 6px; font-weight: 600; }
+.danger { margin-top: 24px; width: 100%; padding: 12px; border: 1px solid var(--danger); border-radius: 8px; background: none; color: var(--danger); }
+
+@media (max-width: 560px) {
+  main { padding: 12px; }
+  .checklist th, .checklist td { padding: 4px 5px; }
+  .checklist .col-date { width: 104px; }
+  .checklist .col-status { width: 60px; }
+  .checklist .col-del { width: 26px; }
+  .task-date { font-size: 13px; }
+  .task-title { font-size: 15px; }
+  .status-btn { font-size: 13px; padding: 8px 2px; }
+  .add-site { flex-direction: column; }
+}
+
+@media print {
+  .app-header, .menu, .add-task, .danger, .col-del, #listView, .progress, .progress-text { display: none !important; }
+  body { background: #fff; }
+  .site-name { border: none; padding: 0; }
+  .status-btn { background: none !important; }
+}
