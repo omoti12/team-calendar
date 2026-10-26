@@ -34,6 +34,7 @@
       <button class="chip active" data-filter="all">すべて</button>
       <button class="chip" data-filter="open">未完了あり</button>
       <button class="chip" data-filter="done">すべて完了</button>
+      <button class="chip chip-warn" data-filter="warn">⚠️ 期限注意</button>
     </div>
     <form id="addSiteForm" class="add-site">
       <input id="newSiteName" type="text" placeholder="新しい現場名を入力" required>
@@ -48,13 +49,19 @@
     <div class="sheet">
     <div class="site-meta">
       <input id="siteNameInput" class="site-name" type="text" aria-label="現場名">
+      <div class="work-date">
+        <label for="workDateInput">工事実行日</label>
+        <input id="workDateInput" type="date">
+        <span id="workDateLeft" class="work-left"></span>
+      </div>
       <div class="progress"><div id="progressBar"></div></div>
       <p id="progressText" class="progress-text"></p>
+      <p id="alertBanner" class="alert-banner" role="status" hidden></p>
     </div>
 
     <table class="checklist">
       <thead>
-        <tr><th>項目</th><th class="col-date">日にち</th><th class="col-qty">台数・人数</th><th class="col-status">状態</th><th class="col-del"></th></tr>
+        <tr><th>項目</th><th class="col-date">期限</th><th class="col-qty">台数・人数</th><th class="col-status">状態</th><th class="col-del"></th></tr>
       </thead>
       <tbody id="taskBody"></tbody>
     </table>
@@ -81,7 +88,8 @@
   <template id="taskRow">
     <tr>
       <td><textarea class="task-title" rows="1" placeholder="項目を入力"></textarea>
-          <input class="task-note" type="text" placeholder="備考"></td>
+          <input class="task-note" type="text" placeholder="備考">
+          <span class="task-warn" hidden></span></td>
       <td class="col-date"><input class="task-date" type="date"></td>
       <td class="col-qty"><input class="task-qty" type="text" aria-label="台数・人数"></td>
       <td class="col-status"><button class="status-btn"></button></td>

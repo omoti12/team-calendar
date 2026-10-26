@@ -106,6 +106,36 @@ function formatDate(iso) {
   return `${Number(m)}/${Number(d)}`;
 }
 
+// 期限チェック: 期限の1週間前になっても未完了なら警告
+const WARN_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function daysUntil(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((Date.UTC(y, m - 1, d) - today) / DAY_MS);
+}
+
+// null（問題なし） / { level: 'soon' | 'overdue', days, label }
+function taskAlert(task) {
+  if (task.done || !task.date) return null;
+  const days = daysUntil(task.date);
+  if (days > WARN_DAYS) return null;
+  if (days < 0) return { level: 'overdue', days, label: `期限切れ（${-days}日過ぎ）` };
+  if (days === 0) return { level: 'soon', days, label: '今日が期限' };
+  return { level: 'soon', days, label: `期限まであと${days}日` };
+}
+
+const siteAlerts = (site) => site.tasks.map(taskAlert).filter(Boolean);
+
+function workDateLabel(site) {
+  if (!site.workDate) return '';
+  const days = daysUntil(site.workDate);
+  const rel = days > 0 ? `あと${days}日` : days === 0 ? '今日' : '実施済み';
+  return `${formatDate(site.workDate)}（${rel}）`;
+}
+
 // 次にやる（未完了で一番上の）項目
 function nextTask(site) {
   return site.tasks.find((t) => !t.done);
@@ -119,32 +149,41 @@ function renderList() {
 
   const sites = state.sites
     .filter((s) => s.name.toLowerCase().includes(q))
-    .filter((s) => filter === 'all' || (filter === 'done' ? isAllDone(s) : !isAllDone(s)))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    .filter((s) => filter === 'all'
+      || (filter === 'warn' ? siteAlerts(s).length > 0 : filter === 'done' ? isAllDone(s) : !isAllDone(s)))
+    // 警告のある現場を上に、その中は更新が新しい順
+    .sort((a, b) => (siteAlerts(b).length > 0) - (siteAlerts(a).length > 0) || b.updatedAt.localeCompare(a.updatedAt));
 
   for (const site of sites) {
     const li = document.createElement('li');
     const done = isAllDone(site);
     const next = nextTask(site);
     const total = site.tasks.length;
-    li.className = 'site-row' + (done ? ' is-done' : '');
+    const alerts = siteAlerts(site);
+    const overdue = alerts.some((a) => a.level === 'overdue');
+    li.className = 'site-row' + (done ? ' is-done' : '') + (alerts.length ? ' is-warn' : '');
     li.tabIndex = 0;
     li.innerHTML = `
       <svg class="folder-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2h8.4A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></svg>
       <div class="info">
         <div class="name"></div>
+        <div class="work"></div>
         <div class="sub"></div>
       </div>
       <div class="prog">
         <span class="count">${doneCount(site)}/${total}</span>
         <div class="bar"><span style="width:${total ? (doneCount(site) / total) * 100 : 0}%"></span></div>
       </div>
-      <span class="pill ${done ? 'done' : 'open'}">${done ? '完了' : '未完了'}</span>
+      ${alerts.length
+        ? `<span class="pill warn">⚠️ <span class="pill-label">${overdue ? '期限切れ' : '期限間近'} </span>${alerts.length}件</span>`
+        : `<span class="pill ${done ? 'done' : 'open'}">${done ? '完了' : '未完了'}</span>`}
       <span class="chev" aria-hidden="true">›</span>`;
     li.querySelector('.name').textContent = site.name;
+    li.querySelector('.work').textContent = site.workDate ? '工事実行日 ' + workDateLabel(site) : '工事実行日 未定';
+    li.querySelector('.work').classList.toggle('is-unset', !site.workDate);
     li.querySelector('.sub').textContent = !total ? '項目なし'
       : done ? 'すべて完了'
-      : `次: ${next.title}${next.date ? '（' + formatDate(next.date) + '）' : ''}`;
+      : `次: ${next.title}${next.date ? '（期限 ' + formatDate(next.date) + '）' : ''}`;
     li.addEventListener('click', () => openSite(site.id));
     li.addEventListener('keydown', (e) => { if (e.key === 'Enter') openSite(site.id); });
     list.appendChild(li);
@@ -191,8 +230,15 @@ function showDetail() {
   $('pageTitle').textContent = site.name;
   $('siteNameInput').value = site.name;
   $('siteNotes').value = site.notes || '';
+  $('workDateInput').value = site.workDate || '';
+  renderWorkDate(site);
   renderTasks(site);
   window.scrollTo(0, 0);
+}
+
+function renderWorkDate(site) {
+  const days = site.workDate ? daysUntil(site.workDate) : null;
+  $('workDateLeft').textContent = days === null ? '未定' : days > 0 ? `あと${days}日` : days === 0 ? '今日' : '実施済み';
 }
 
 function renderProgress(site) {
@@ -200,6 +246,13 @@ function renderProgress(site) {
   const done = doneCount(site);
   $('progressBar').style.width = total ? (done / total) * 100 + '%' : '0';
   $('progressText').textContent = `${done} / ${total} 完了`;
+
+  const alerts = siteAlerts(site);
+  const overdue = alerts.filter((a) => a.level === 'overdue').length;
+  $('alertBanner').hidden = alerts.length === 0;
+  $('alertBanner').textContent = overdue
+    ? `⚠️ 期限切れの項目が ${overdue} 件${alerts.length > overdue ? `、期限間近が ${alerts.length - overdue} 件` : ''}あります`
+    : `⚠️ 期限まで1週間を切った未完了の項目が ${alerts.length} 件あります`;
 }
 
 function autoGrow(el) {
@@ -227,17 +280,23 @@ function renderTasks(site) {
     const paintQtyHint = () => { qty.placeholder = qtyHint(title.value); };
     paintQtyHint();
 
+    const warn = row.querySelector('.task-warn');
     const paintStatus = () => {
       status.textContent = task.done ? '完了' : '未完了';
       status.className = 'status-btn ' + (task.done ? 'done' : 'open');
       row.classList.toggle('is-done', task.done);
+      const alert = taskAlert(task);
+      row.classList.toggle('is-warn', !!alert);
+      row.classList.toggle('is-overdue', alert?.level === 'overdue');
+      warn.hidden = !alert;
+      warn.textContent = alert ? '⚠️ ' + alert.label : '';
     };
     paintStatus();
 
     title.addEventListener('input', () => { task.title = title.value; autoGrow(title); paintQtyHint(); touch(site); });
     qty.addEventListener('input', () => { task.qty = qty.value; touch(site); });
     note.addEventListener('input', () => { task.note = note.value; touch(site); });
-    date.addEventListener('change', () => { task.date = date.value; touch(site); });
+    date.addEventListener('change', () => { task.date = date.value; paintStatus(); renderProgress(site); touch(site); });
     status.addEventListener('click', () => {
       task.done = !task.done;
       paintStatus();
@@ -287,6 +346,13 @@ $('siteNameInput').addEventListener('input', (e) => {
   const site = getSite(currentId);
   site.name = e.target.value;
   $('pageTitle').textContent = site.name || '（無題）';
+  touch(site);
+});
+
+$('workDateInput').addEventListener('change', (e) => {
+  const site = getSite(currentId);
+  site.workDate = e.target.value;
+  renderWorkDate(site);
   touch(site);
 });
 
