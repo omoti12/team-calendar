@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>現場管理</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
   <header class="app-header">
@@ -87,16 +87,16 @@
 
   <template id="taskRow">
     <tr>
-      <td><textarea class="task-title" rows="1" placeholder="項目を入力"></textarea>
+      <td class="col-title"><textarea class="task-title" rows="1" placeholder="項目を入力"></textarea>
           <input class="task-note" type="text" placeholder="備考">
           <span class="task-warn" hidden></span></td>
-      <td class="col-date"><input class="task-date" type="date"></td>
-      <td class="col-qty"><input class="task-qty" type="text" aria-label="台数・人数"></td>
+      <td class="col-date" data-label="期限"><input class="task-date" type="date" aria-label="期限"></td>
+      <td class="col-qty" data-label="台数・人数"><input class="task-qty" type="text" aria-label="台数・人数"></td>
       <td class="col-status"><button class="status-btn"></button></td>
       <td class="col-del"><button class="del-btn" aria-label="項目を削除">×</button></td>
     </tr>
   </template>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

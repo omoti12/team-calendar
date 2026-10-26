@@ -202,15 +202,32 @@ main { max-width: 820px; margin: 0 auto; padding: 16px; }
   .pill-label { display: none; }
   .count-text { width: 100%; }
   .sheet { padding: 14px 8px 16px; }
-  .checklist th, .checklist td { padding: 4px 5px; }
-  .checklist .col-date { width: 100px; }
-  .checklist .col-qty { width: 48px; }
-  .checklist th.col-qty { font-size: 10.5px; line-height: 1.2; }
-  .checklist .col-status { width: 62px; }
-  .checklist .col-del { width: 26px; }
-  .task-date, .task-qty { font-size: 13px; }
-  .task-title { font-size: 14.5px; }
-  .status-btn { font-size: 12.5px; padding: 7px 2px; }
+  /* スマホでは表をやめて、1項目ずつのカードにする */
+  .checklist, .checklist tbody { display: block; border: none; }
+  .checklist thead { display: none; }
+  .checklist tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr 76px 32px;
+    grid-template-areas: "title title status del" "date date qty qty";
+    gap: 8px 10px; align-items: center;
+    padding: 12px 10px; border: 1px solid var(--line-strong); border-radius: 8px;
+  }
+  .checklist tr + tr { margin-top: 8px; }
+  .checklist td { display: block; width: auto !important; padding: 0; border: none; background: none !important; box-shadow: none !important; }
+  .checklist .col-title { grid-area: title; min-width: 0; }
+  .checklist .col-date { grid-area: date; min-width: 0; }
+  .checklist .col-qty { grid-area: qty; min-width: 0; text-align: left; }
+  .checklist .col-status { grid-area: status; }
+  .checklist .col-del { grid-area: del; }
+  .checklist td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+  .task-date, .task-qty {
+    padding: 7px 8px; font-size: 14px; text-align: left;
+    border: 1px solid var(--line-strong); border-radius: 6px; background: var(--card);
+  }
+  .task-title { font-size: 16px; font-weight: 600; }
+  .checklist tr.is-done { background: color-mix(in srgb, var(--done-bg) 50%, var(--card)); }
+  .checklist tr.is-warn { background: var(--warn-bg); border-color: var(--warn); box-shadow: inset 4px 0 0 var(--warn); }
+  .status-btn { font-size: 13px; padding: 9px 2px; }
 }
 
 @media print {
