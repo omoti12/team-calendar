@@ -10,6 +10,10 @@
   --open: #b45309;
   --open-bg: #fef3c7;
   --danger: #dc2626;
+  --folder: #f6c453;
+  --folder-dark: #e0a92e;
+  --folder-done: #8fd19e;
+  --folder-done-dark: #5fb576;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -17,6 +21,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
   font-size: 16px;
 }
@@ -30,7 +35,11 @@ button { cursor: pointer; }
   background: var(--card);
   border-bottom: 1px solid var(--line);
 }
-.app-header h1 { flex: 1; margin: 0; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crumbs { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.crumb-root { flex-shrink: 0; background: none; border: none; padding: 4px 0; font-size: 17px; font-weight: 700; }
+.crumb-root:has(~ #pageTitle:not([hidden])) { color: var(--accent); font-weight: 600; }
+.crumb-sep { color: var(--muted); }
+.app-header h1 { margin: 0; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icon-btn { background: none; border: none; font-size: 18px; padding: 4px 8px; color: var(--accent); }
 
 .menu {
@@ -44,35 +53,99 @@ button { cursor: pointer; }
 
 main { max-width: 760px; margin: 0 auto; padding: 16px; }
 
-.search-row input, .add-site input, .site-name, #siteNotes {
+.search-row input, .site-name, #siteNotes {
   width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
 }
 .filter-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
 .chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
 .chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-.site-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.site-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+.count-text { font-size: 13px; color: var(--muted); margin-right: auto; align-self: center; }
+
+/* ---------- フォルダ一覧 ---------- */
+.folder-grid {
+  list-style: none; margin: 8px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 22px 14px;
 }
-.site-item:hover { border-color: var(--accent); }
-.site-item .icon { font-size: 22px; }
-.site-item .info { flex: 1; min-width: 0; }
-.site-item .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.site-item .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
-.badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
-.badge.done { background: var(--done-bg); color: var(--done); }
-.badge.open { background: var(--open-bg); color: var(--open); }
+.folder { position: relative; display: flex; flex-direction: column; padding-top: 14px; cursor: pointer; outline: none; transition: transform .12s; }
+.folder:hover, .folder:focus-visible { transform: translateY(-3px); }
+.folder-tab {
+  position: absolute; top: 0; left: 0; width: 46%; height: 22px;
+  background: var(--folder-dark); border-radius: 10px 10px 0 0;
+}
+.folder-tab::after {
+  content: ""; position: absolute; right: -14px; bottom: 0; width: 28px; height: 22px;
+  background: var(--folder-dark); border-top-right-radius: 12px; transform: skewX(30deg);
+}
+.folder-body {
+  position: relative; flex: 1; display: flex; flex-direction: column; gap: 4px;
+  min-height: 132px; padding: 18px 14px 12px;
+  background: linear-gradient(180deg, var(--folder) 0%, #f1b93c 100%);
+  border-radius: 4px 12px 12px 12px;
+  box-shadow: 0 2px 0 rgba(0,0,0,.06), 0 6px 14px rgba(120,80,0,.15);
+  overflow: hidden;
+}
+/* 中の紙がちょっと見える */
+.folder-paper {
+  position: absolute; left: 10px; right: 10px; top: -6px; height: 14px;
+  background: #fff; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.15);
+}
+.folder.is-done .folder-tab, .folder.is-done .folder-tab::after { background: var(--folder-done-dark); }
+.folder.is-done .folder-body { background: linear-gradient(180deg, var(--folder-done) 0%, #74c48a 100%); box-shadow: 0 2px 0 rgba(0,0,0,.06), 0 6px 14px rgba(0,90,30,.15); }
+.folder .name {
+  font-weight: 700; font-size: 17px; line-height: 1.35; color: #3b2a05;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-all;
+}
+.folder.is-done .name { color: #0f3d1d; }
+.folder .sub {
+  font-size: 12px; color: rgba(0,0,0,.6);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.folder-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 6px; }
+.mini-progress { flex: 1; height: 6px; background: rgba(255,255,255,.55); border-radius: 999px; overflow: hidden; }
+.mini-progress span { display: block; height: 100%; background: #7a5200; border-radius: 999px; }
+.folder.is-done .mini-progress span { background: #1b6b34; }
+.badge { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; background: rgba(255,255,255,.7); }
+.badge.done { color: var(--done); }
+.badge.open { color: #7a5200; }
+
+/* 新規フォルダ */
+.folder-new { cursor: default; }
+.folder-new:hover { transform: none; }
+.folder-new .folder-tab, .folder-new .folder-tab::after { background: transparent; border: 2px dashed #b9bec7; border-bottom: none; }
+.folder-new .folder-tab::after { display: none; }
+.folder-new .folder-body {
+  background: rgba(255,255,255,.6); border: 2px dashed #b9bec7; box-shadow: none; justify-content: center; align-items: stretch;
+}
+.new-plus { text-align: center; font-size: 26px; color: #9aa1ac; line-height: 1; }
+.folder-new input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; font-size: 14px; }
+.folder-new button { padding: 8px; border: none; border-radius: 6px; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; }
 .empty { color: var(--muted); text-align: center; padding: 24px 0; }
 
-.add-site { display: flex; gap: 8px; margin-top: 16px; }
-.add-site button, .add-task {
+.add-task {
   white-space: nowrap; padding: 12px 16px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600;
 }
 
+/* ---------- 開いたフォルダ ---------- */
+.open-folder { position: relative; padding-top: 34px; }
+.open-folder-tab {
+  position: absolute; top: 0; left: 0; max-width: 70%;
+  height: 36px; padding: 8px 18px 0 14px;
+  background: var(--folder-dark); color: #3b2a05; font-weight: 700; font-size: 14px;
+  border-radius: 12px 12px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.open-folder::before {
+  content: ""; position: absolute; inset: 34px 0 0 0;
+  background: linear-gradient(180deg, var(--folder) 0%, #f1b93c 100%);
+  border-radius: 0 14px 14px 14px; box-shadow: 0 8px 22px rgba(120,80,0,.18);
+}
+.sheet {
+  position: relative; margin: 12px 10px 10px; padding: 18px 16px 20px;
+  background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.15);
+}
 .site-meta { margin-bottom: 16px; }
-.site-name { font-size: 20px; font-weight: 700; }
+.site-name { font-size: 20px; font-weight: 700; border-color: transparent; padding: 6px 8px; margin-left: -8px; }
+.site-name:hover, .site-name:focus { border-color: var(--line); }
 .progress { height: 8px; background: var(--line); border-radius: 999px; margin-top: 12px; overflow: hidden; }
 #progressBar { height: 100%; width: 0; background: var(--done); transition: width .2s; }
 .progress-text { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
@@ -103,6 +176,10 @@ main { max-width: 760px; margin: 0 auto; padding: 16px; }
 
 @media (max-width: 560px) {
   main { padding: 12px; }
+  .folder-grid { grid-template-columns: repeat(2, 1fr); gap: 18px 10px; }
+  .folder-body { min-height: 124px; padding: 16px 10px 10px; }
+  .folder .name { font-size: 15px; }
+  .sheet { margin: 8px 6px 6px; padding: 14px 8px 16px; }
   .checklist th, .checklist td { padding: 4px 5px; }
   .checklist .col-date { width: 104px; }
   .checklist .col-status { width: 60px; }
@@ -114,7 +191,8 @@ main { max-width: 760px; margin: 0 auto; padding: 16px; }
 }
 
 @media print {
-  .app-header, .menu, .add-task, .danger, .col-del, #listView, .progress, .progress-text { display: none !important; }
+  .app-header, .menu, .add-task, .danger, .col-del, #listView, .progress, .progress-text, .open-folder-tab { display: none !important; }
+  .open-folder { padding: 0; } .open-folder::before { display: none; } .sheet { margin: 0; box-shadow: none; }
   body { background: #fff; }
   .site-name { border: none; padding: 0; }
   .status-btn { background: none !important; }

@@ -70,7 +70,8 @@ function nextTask(site) {
 function renderList() {
   const q = $('searchInput').value.trim().toLowerCase();
   const list = $('siteList');
-  list.innerHTML = '';
+  const newTile = list.querySelector('.folder-new');
+  list.querySelectorAll('.folder:not(.folder-new)').forEach((el) => el.remove());
 
   const sites = state.sites
     .filter((s) => s.name.toLowerCase().includes(q))
@@ -79,29 +80,36 @@ function renderList() {
 
   for (const site of sites) {
     const li = document.createElement('li');
-    li.className = 'site-item';
     const done = isAllDone(site);
     const next = nextTask(site);
-    const sub = done
-      ? 'すべて完了'
-      : `次: ${next.title}${next.date ? '（' + formatDate(next.date) + '）' : ''}`;
-
+    const total = site.tasks.length;
+    li.className = 'folder' + (done ? ' is-done' : '');
+    li.tabIndex = 0;
     li.innerHTML = `
-      <span class="icon">📁</span>
-      <div class="info">
+      <div class="folder-tab"></div>
+      <div class="folder-body">
+        <div class="folder-paper"></div>
         <div class="name"></div>
         <div class="sub"></div>
-      </div>
-      <span class="badge ${done ? 'done' : 'open'}">${doneCount(site)}/${site.tasks.length} 完了</span>`;
+        <div class="folder-foot">
+          <div class="mini-progress"><span style="width:${total ? (doneCount(site) / total) * 100 : 0}%"></span></div>
+          <span class="badge ${done ? 'done' : 'open'}">${done ? '✓ 完了' : doneCount(site) + '/' + total}</span>
+        </div>
+      </div>`;
     li.querySelector('.name').textContent = site.name;
-    li.querySelector('.sub').textContent = site.tasks.length ? sub : '項目なし';
+    li.querySelector('.sub').textContent = !total ? '項目なし'
+      : done ? 'すべて完了'
+      : `次: ${next.title}${next.date ? '（' + formatDate(next.date) + '）' : ''}`;
     li.addEventListener('click', () => openSite(site.id));
-    list.appendChild(li);
+    li.addEventListener('keydown', (e) => { if (e.key === 'Enter') openSite(site.id); });
+    list.insertBefore(li, newTile);
   }
+
+  $('countText').textContent = `${sites.length} 件`;
 
   const empty = $('emptyMsg');
   if (state.sites.length === 0) {
-    empty.textContent = 'まだ現場がありません。下から追加してください。';
+    empty.textContent = 'まだ現場がありません。「＋」のフォルダから追加してください。';
     empty.hidden = false;
   } else if (sites.length === 0) {
     empty.textContent = '該当する現場がありません。';
@@ -123,8 +131,8 @@ function showList() {
   history.replaceState(null, '', location.pathname);
   $('detailView').hidden = true;
   $('listView').hidden = false;
-  $('backBtn').hidden = true;
-  $('pageTitle').textContent = '現場管理';
+  $('crumbSep').hidden = true;
+  $('pageTitle').hidden = true;
   renderList();
 }
 
@@ -133,8 +141,10 @@ function showDetail() {
   if (!site) return showList();
   $('listView').hidden = true;
   $('detailView').hidden = false;
-  $('backBtn').hidden = false;
+  $('crumbSep').hidden = false;
+  $('pageTitle').hidden = false;
   $('pageTitle').textContent = site.name;
+  $('tabName').textContent = site.name;
   $('siteNameInput').value = site.name;
   $('siteNotes').value = site.notes || '';
   renderTasks(site);
@@ -228,6 +238,7 @@ $('siteNameInput').addEventListener('input', (e) => {
   const site = getSite(currentId);
   site.name = e.target.value;
   $('pageTitle').textContent = site.name || '（無題）';
+  $('tabName').textContent = site.name || '（無題）';
   touch(site);
 });
 
