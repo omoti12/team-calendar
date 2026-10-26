@@ -31,9 +31,29 @@ function save() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
-    alert('保存できませんでした: ' + e.message);
+    notify('保存できませんでした: ' + e.message);
   }
 }
+
+// ブラウザ標準の confirm/alert が使えない環境もあるので自前の確認ダイアログ
+function ask(message, okLabel = 'OK', cancel = true) {
+  return new Promise((resolve) => {
+    $('dialogMsg').textContent = message;
+    $('dialogOk').textContent = okLabel;
+    $('dialogOk').classList.toggle('is-danger', okLabel === '削除');
+    $('dialogCancel').hidden = !cancel;
+    $('dialog').hidden = false;
+    $('dialogOk').focus();
+    const done = (v) => {
+      $('dialog').hidden = true;
+      $('dialogOk').onclick = $('dialogCancel').onclick = null;
+      resolve(v);
+    };
+    $('dialogOk').onclick = () => done(true);
+    $('dialogCancel').onclick = () => done(false);
+  });
+}
+const notify = (message) => ask(message, 'OK', false);
 
 function newSite(name) {
   return {
@@ -195,8 +215,8 @@ function renderTasks(site) {
       renderProgress(site);
       touch(site);
     });
-    row.querySelector('.del-btn').addEventListener('click', () => {
-      if (task.title && !confirm(`「${task.title}」を削除しますか？`)) return;
+    row.querySelector('.del-btn').addEventListener('click', async () => {
+      if (task.title && !(await ask(`「${task.title}」を削除しますか？`, '削除'))) return;
       site.tasks = site.tasks.filter((t) => t !== task);
       touch(site);
       renderTasks(site);
@@ -257,9 +277,9 @@ $('addTaskBtn').addEventListener('click', () => {
   titles[titles.length - 1].focus();
 });
 
-$('deleteSiteBtn').addEventListener('click', () => {
+$('deleteSiteBtn').addEventListener('click', async () => {
   const site = getSite(currentId);
-  if (!confirm(`現場「${site.name}」を削除しますか？\n元に戻せません。`)) return;
+  if (!(await ask(`現場「${site.name}」を削除しますか？\n元に戻せません。`, '削除'))) return;
   state.sites = state.sites.filter((s) => s.id !== site.id);
   save();
   showList();
@@ -289,12 +309,12 @@ $('importInput').addEventListener('change', async (e) => {
   try {
     const data = JSON.parse(await file.text());
     if (!Array.isArray(data.sites)) throw new Error('形式が違います');
-    if (!confirm(`${data.sites.length} 件の現場を読み込みます。今のデータは置き換わります。よろしいですか？`)) return;
+    if (!(await ask(`${data.sites.length} 件の現場を読み込みます。今のデータは置き換わります。よろしいですか？`, '読み込む'))) return;
     state = data;
     save();
     showList();
   } catch (err) {
-    alert('読み込めませんでした: ' + err.message);
+    notify('読み込めませんでした: ' + err.message);
   } finally {
     e.target.value = '';
   }

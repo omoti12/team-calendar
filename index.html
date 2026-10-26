@@ -76,6 +76,16 @@
     <button id="deleteSiteBtn" class="danger">この現場を削除</button>
   </main>
 
+  <div id="dialog" class="dialog-backdrop" hidden>
+    <div class="dialog" role="alertdialog" aria-modal="true">
+      <p id="dialogMsg"></p>
+      <div class="dialog-actions">
+        <button id="dialogCancel" class="btn-sub">キャンセル</button>
+        <button id="dialogOk" class="btn-main">OK</button>
+      </div>
+    </div>
+  </div>
+
   <template id="taskRow">
     <tr>
       <td><textarea class="task-title" rows="1" placeholder="項目を入力"></textarea>
