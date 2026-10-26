@@ -3,7 +3,9 @@ const STORAGE_KEY = 'genba-kanri-v1';
 
 // 紙の枠と同じ初期項目
 const DEFAULT_TASKS = [
-  '申請・施工日日程決め（カッター・ダンプ・ケイビ）',
+  '申請・施工日日程決め（カッター）',
+  '申請・施工日日程決め（ダンプ）',
+  '申請・施工日日程決め（警備）',
   '道路占用 受取り',
   '道路使用 提出',
   '道路使用 受取り',
@@ -15,14 +17,28 @@ const DEFAULT_TASKS = [
 const $ = (id) => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+// 以前の「カッター・ダンプ・ケイビ」をまとめた1行を、3行に分ける
+const OLD_COMBINED_TASK = '申請・施工日日程決め（カッター・ダンプ・ケイビ）';
+
 let state = load();
 let currentId = null;
 let filter = 'all';
 
+
+function migrate(data) {
+  for (const site of data.sites) {
+    const i = site.tasks.findIndex((t) => t.title === OLD_COMBINED_TASK);
+    if (i === -1) continue;
+    const old = site.tasks[i];
+    site.tasks.splice(i, 1, ...DEFAULT_TASKS.slice(0, 3).map((title) => ({ ...old, id: uid(), title })));
+  }
+  return data;
+}
+
 function load() {
   try {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (data && Array.isArray(data.sites)) return data;
+    if (data && Array.isArray(data.sites)) return migrate(data);
   } catch (e) { /* 読めなければ空で開始 */ }
   return { sites: [] };
 }
@@ -310,7 +326,7 @@ $('importInput').addEventListener('change', async (e) => {
     const data = JSON.parse(await file.text());
     if (!Array.isArray(data.sites)) throw new Error('形式が違います');
     if (!(await ask(`${data.sites.length} 件の現場を読み込みます。今のデータは置き換わります。よろしいですか？`, '読み込む'))) return;
-    state = data;
+    state = migrate(data);
     save();
     showList();
   } catch (err) {
