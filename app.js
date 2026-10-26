@@ -3,9 +3,9 @@ const STORAGE_KEY = 'genba-kanri-v1';
 
 // 紙の枠と同じ初期項目
 const DEFAULT_TASKS = [
-  '申請・施工日日程決め（カッター）',
-  '申請・施工日日程決め（ダンプ）',
-  '申請・施工日日程決め（警備）',
+  'カッター',
+  'ダンプ',
+  '警備',
   '道路占用 受取り',
   '道路使用 提出',
   '道路使用 受取り',
@@ -17,22 +17,31 @@ const DEFAULT_TASKS = [
 const $ = (id) => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-// 以前の「カッター・ダンプ・ケイビ」をまとめた1行を、3行に分ける
-const OLD_COMBINED_TASK = '申請・施工日日程決め（カッター・ダンプ・ケイビ）';
+// 以前の項目名 → 今の項目名（1行を複数行に分けたものも含む）
+const RENAMED_TASKS = {
+  '申請・施工日日程決め（カッター・ダンプ・ケイビ）': ['カッター', 'ダンプ', '警備'],
+  '申請・施工日日程決め（カッター）': ['カッター'],
+  '申請・施工日日程決め（ダンプ）': ['ダンプ'],
+  '申請・施工日日程決め（警備）': ['警備'],
+};
 
 let state = load();
 let currentId = null;
 let filter = 'all';
 
-
 function migrate(data) {
   for (const site of data.sites) {
-    const i = site.tasks.findIndex((t) => t.title === OLD_COMBINED_TASK);
-    if (i === -1) continue;
-    const old = site.tasks[i];
-    site.tasks.splice(i, 1, ...DEFAULT_TASKS.slice(0, 3).map((title) => ({ ...old, id: uid(), title })));
+    site.tasks = site.tasks.flatMap((t) =>
+      RENAMED_TASKS[t.title] ? RENAMED_TASKS[t.title].map((title) => ({ ...t, id: uid(), title })) : [t]);
   }
   return data;
+}
+
+// 台数・人数欄のヒント（警備は人、カッター・ダンプは台）
+function qtyHint(title) {
+  if (/警備|ケイビ|ガードマン/.test(title)) return '人';
+  if (/カッター|ダンプ|重機|車/.test(title)) return '台';
+  return '';
 }
 
 function load() {
@@ -78,7 +87,7 @@ function newSite(name) {
     notes: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    tasks: DEFAULT_TASKS.map((title) => ({ id: uid(), title, date: '', note: '', done: false })),
+    tasks: DEFAULT_TASKS.map((title) => ({ id: uid(), title, date: '', qty: '', note: '', done: false })),
   };
 }
 
@@ -208,11 +217,15 @@ function renderTasks(site) {
     const title = row.querySelector('.task-title');
     const note = row.querySelector('.task-note');
     const date = row.querySelector('.task-date');
+    const qty = row.querySelector('.task-qty');
     const status = row.querySelector('.status-btn');
 
     title.value = task.title;
     note.value = task.note || '';
     date.value = task.date || '';
+    qty.value = task.qty || '';
+    const paintQtyHint = () => { qty.placeholder = qtyHint(title.value); };
+    paintQtyHint();
 
     const paintStatus = () => {
       status.textContent = task.done ? '完了' : '未完了';
@@ -221,7 +234,8 @@ function renderTasks(site) {
     };
     paintStatus();
 
-    title.addEventListener('input', () => { task.title = title.value; autoGrow(title); touch(site); });
+    title.addEventListener('input', () => { task.title = title.value; autoGrow(title); paintQtyHint(); touch(site); });
+    qty.addEventListener('input', () => { task.qty = qty.value; touch(site); });
     note.addEventListener('input', () => { task.note = note.value; touch(site); });
     date.addEventListener('change', () => { task.date = date.value; touch(site); });
     status.addEventListener('click', () => {
@@ -284,7 +298,7 @@ $('siteNotes').addEventListener('input', (e) => {
 
 $('addTaskBtn').addEventListener('click', () => {
   const site = getSite(currentId);
-  site.tasks.push({ id: uid(), title: '', date: '', note: '', done: false });
+  site.tasks.push({ id: uid(), title: '', date: '', qty: '', note: '', done: false });
   touch(site);
   renderTasks(site);
   const titles = document.querySelectorAll('#taskBody .task-title');

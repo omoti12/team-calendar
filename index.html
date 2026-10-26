@@ -54,7 +54,7 @@
 
     <table class="checklist">
       <thead>
-        <tr><th>項目</th><th class="col-date">日にち</th><th class="col-status">状態</th><th class="col-del"></th></tr>
+        <tr><th>項目</th><th class="col-date">日にち</th><th class="col-qty">台数・人数</th><th class="col-status">状態</th><th class="col-del"></th></tr>
       </thead>
       <tbody id="taskBody"></tbody>
     </table>
@@ -83,6 +83,7 @@
       <td><textarea class="task-title" rows="1" placeholder="項目を入力"></textarea>
           <input class="task-note" type="text" placeholder="備考"></td>
       <td class="col-date"><input class="task-date" type="date"></td>
+      <td class="col-qty"><input class="task-qty" type="text" aria-label="台数・人数"></td>
       <td class="col-status"><button class="status-btn"></button></td>
       <td class="col-del"><button class="del-btn" aria-label="項目を削除">×</button></td>
     </tr>
