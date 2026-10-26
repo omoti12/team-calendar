@@ -9,7 +9,7 @@
 <body>
   <header class="app-header">
     <nav class="crumbs">
-      <button id="backBtn" class="crumb-root">📂 現場一覧</button>
+      <button id="backBtn" class="crumb-root">現場一覧</button>
       <span id="crumbSep" class="crumb-sep" hidden>›</span>
       <h1 id="pageTitle" hidden></h1>
     </nav>
@@ -35,23 +35,16 @@
       <button class="chip" data-filter="open">未完了あり</button>
       <button class="chip" data-filter="done">すべて完了</button>
     </div>
-    <ul id="siteList" class="folder-grid">
-      <li class="folder folder-new">
-        <div class="folder-tab"></div>
-        <form id="addSiteForm" class="folder-body">
-          <span class="new-plus">＋</span>
-          <input id="newSiteName" type="text" placeholder="新しい現場名" required>
-          <button type="submit">フォルダを作成</button>
-        </form>
-      </li>
-    </ul>
+    <form id="addSiteForm" class="add-site">
+      <input id="newSiteName" type="text" placeholder="新しい現場名を入力" required>
+      <button type="submit">＋ 追加</button>
+    </form>
+    <ul id="siteList" class="site-list"></ul>
     <p id="emptyMsg" class="empty" hidden></p>
   </main>
 
   <!-- 現場詳細 -->
   <main id="detailView" hidden>
-    <div class="open-folder">
-    <div class="open-folder-tab">📂 <span id="tabName"></span></div>
     <div class="sheet">
     <div class="site-meta">
       <input id="siteNameInput" class="site-name" type="text" aria-label="現場名">
@@ -70,7 +63,6 @@
 
     <label class="notes-label" for="siteNotes">メモ</label>
     <textarea id="siteNotes" rows="4" placeholder="自由に記入"></textarea>
-    </div>
     </div>
 
     <button id="deleteSiteBtn" class="danger">この現場を削除</button>
