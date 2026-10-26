@@ -4,7 +4,17 @@
 
 ## 使い方
 
-`index.html` をブラウザで開くだけで動きます（GitHub Pages でも公開可能）。
+公開URL: https://omoti12.github.io/team-calendar/
+
+`index.html` をブラウザで開くだけでも動きます。
+
+### GitHub Pages の設定（最初の1回だけ）
+
+リポジトリの **Settings → Pages** で
+- Source: **Deploy from a branch**
+- Branch: **ccr-65599146-afoday** / **(root)** → Save
+
+以降はこのブランチに push すると自動で公開ページが更新されます。
 
 - **現場を追加**: 一覧の点線フォルダに現場名を入力して「フォルダを作成」
 - **一覧**: 現場ごとにフォルダ表示（未完了は黄色、すべて完了で緑）。進み具合と次にやる項目が見える
