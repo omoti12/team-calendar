@@ -87,13 +87,24 @@ function newSite(name) {
     notes: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    tasks: DEFAULT_TASKS.map((title) => ({ id: uid(), title, date: '', qty: '', note: '', done: false })),
+    tasks: DEFAULT_TASKS.map((title) => ({ id: uid(), title, date: '', qty: '', doneDate: '', note: '', done: false })),
   };
 }
 
 function touch(site) {
   site.updatedAt = new Date().toISOString();
   save();
+  showSaveStatus('自動保存済み', false);
+}
+
+let saveStatusTimer;
+function showSaveStatus(text, highlight) {
+  const el = $('saveStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle('is-saved', highlight);
+  clearTimeout(saveStatusTimer);
+  if (highlight) saveStatusTimer = setTimeout(() => showSaveStatus('', false), 2500);
 }
 
 const getSite = (id) => state.sites.find((s) => s.id === id);
@@ -109,6 +120,11 @@ function formatDate(iso) {
 // 期限チェック: 期限の1週間前になっても未完了なら警告
 const WARN_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function daysUntil(iso) {
   const [y, m, d] = iso.split('-').map(Number);
@@ -221,6 +237,7 @@ function showList() {
 function showDetail() {
   const site = getSite(currentId);
   if (!site) return showList();
+  showSaveStatus('', false);
   $('listView').hidden = true;
   $('detailView').hidden = false;
   $('crumbSep').hidden = false;
@@ -269,12 +286,14 @@ function renderTasks(site) {
     const note = row.querySelector('.task-note');
     const date = row.querySelector('.task-date');
     const qty = row.querySelector('.task-qty');
+    const doneDate = row.querySelector('.task-done-date');
     const status = row.querySelector('.status-btn');
 
     title.value = task.title;
     note.value = task.note || '';
     date.value = task.date || '';
     qty.value = task.qty || '';
+    doneDate.value = task.doneDate || '';
     const paintQtyHint = () => { qty.placeholder = qtyHint(title.value); };
     paintQtyHint();
 
@@ -295,8 +314,19 @@ function renderTasks(site) {
     qty.addEventListener('input', () => { task.qty = qty.value; touch(site); });
     note.addEventListener('input', () => { task.note = note.value; touch(site); });
     date.addEventListener('change', () => { task.date = date.value; paintStatus(); renderProgress(site); touch(site); });
+    doneDate.addEventListener('change', () => {
+      task.doneDate = doneDate.value;
+      // 完了日を入れたら完了扱いにする
+      if (doneDate.value && !task.done) task.done = true;
+      paintStatus();
+      renderProgress(site);
+      touch(site);
+    });
     status.addEventListener('click', () => {
       task.done = !task.done;
+      // 完了にしたら今日の日付を完了日に入れる（あとで変更可）。未完了に戻したら消す
+      task.doneDate = task.done ? (task.doneDate || todayISO()) : '';
+      doneDate.value = task.doneDate;
       paintStatus();
       renderProgress(site);
       touch(site);
@@ -339,6 +369,14 @@ $('addSiteForm').addEventListener('submit', (e) => {
 });
 
 $('backBtn').addEventListener('click', showList);
+$('backToListBtn').addEventListener('click', showList);
+
+$('saveBtn').addEventListener('click', () => {
+  const site = getSite(currentId);
+  if (site) site.updatedAt = new Date().toISOString();
+  save();
+  showSaveStatus('✓ 保存しました', true);
+});
 
 $('siteNameInput').addEventListener('input', (e) => {
   const site = getSite(currentId);
@@ -362,7 +400,7 @@ $('siteNotes').addEventListener('input', (e) => {
 
 $('addTaskBtn').addEventListener('click', () => {
   const site = getSite(currentId);
-  site.tasks.push({ id: uid(), title: '', date: '', qty: '', note: '', done: false });
+  site.tasks.push({ id: uid(), title: '', date: '', qty: '', doneDate: '', note: '', done: false });
   touch(site);
   renderTasks(site);
   const titles = document.querySelectorAll('#taskBody .task-title');

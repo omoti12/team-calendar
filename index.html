@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>現場管理</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
   <header class="app-header">
@@ -73,6 +73,12 @@
     </div>
 
     <button id="deleteSiteBtn" class="danger">この現場を削除</button>
+
+    <div class="action-bar">
+      <button id="backToListBtn" class="btn-back">‹ 現場一覧に戻る</button>
+      <span id="saveStatus" class="save-status" role="status"></span>
+      <button id="saveBtn" class="btn-save">保存</button>
+    </div>
   </main>
 
   <div id="dialog" class="dialog-backdrop" hidden>
@@ -92,11 +98,12 @@
           <span class="task-warn" hidden></span></td>
       <td class="col-date" data-label="期限"><input class="task-date" type="date" aria-label="期限"></td>
       <td class="col-qty" data-label="台数・人数"><input class="task-qty" type="text" aria-label="台数・人数"></td>
-      <td class="col-status"><button class="status-btn"></button></td>
+      <td class="col-done" data-label="完了日"><input class="task-done-date" type="date" aria-label="完了日"></td>
+      <td class="col-status" data-label="状態"><button class="status-btn"></button></td>
       <td class="col-del"><button class="del-btn" aria-label="項目を削除">×</button></td>
     </tr>
   </template>
 
-  <script src="app.js?v=10"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>
