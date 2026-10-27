@@ -455,6 +455,34 @@ $('printBtn').addEventListener('click', () => {
   window.print();
 });
 
+/* ホーム画面に追加（PWA） */
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+});
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+if (isStandalone()) $('installBtn').hidden = true;
+
+$('installBtn').addEventListener('click', async () => {
+  $('menu').hidden = true;
+  if (installPrompt) {
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    return;
+  }
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  notify(ios
+    ? 'Safari の下にある共有ボタン（□に↑）を押して、\n「ホーム画面に追加」を選んでください。'
+    : 'ブラウザのメニュー（︙）から\n「ホーム画面に追加」または「アプリをインストール」を選んでください。');
+});
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* 使えない環境ではそのまま動かす */ });
+}
+
 window.addEventListener('hashchange', () => {
   const id = location.hash.slice(1);
   if (id && getSite(id)) { currentId = id; showDetail(); } else if (!id) showList();

@@ -4,7 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>現場管理</title>
-  <link rel="stylesheet" href="style.css?v=11">
+  <meta name="theme-color" content="#1f4e8c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="現場管理">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <header class="app-header">
@@ -17,6 +25,7 @@
   </header>
 
   <div id="menu" class="menu" hidden>
+    <button id="installBtn">ホーム画面に追加</button>
     <button id="exportBtn">データを書き出す (JSON)</button>
     <label class="menu-file">データを読み込む
       <input id="importInput" type="file" accept="application/json" hidden>
@@ -104,6 +113,6 @@
     </tr>
   </template>
 
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=12"></script>
 </body>
 </html>
