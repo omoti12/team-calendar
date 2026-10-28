@@ -111,10 +111,16 @@ function ask(message, okLabel = 'OK', cancel = true) {
 }
 const notify = (message) => ask(message, 'OK', false);
 
-function newSite(name, area) {
+// 担当者名はこの端末に覚えておき、次に現場を作る時に最初から入れておく
+const OWNER_KEY = 'genba-kanri-owner';
+const lastOwner = () => { try { return localStorage.getItem(OWNER_KEY) || ''; } catch (e) { return ''; } };
+const rememberOwner = (name) => { try { localStorage.setItem(OWNER_KEY, name); } catch (e) { /* 覚えられなくても困らない */ } };
+
+function newSite(name, area, owner = '') {
   return {
     id: uid(),
     name,
+    owner,
     area: area in TEMPLATES && TEMPLATES[area].length ? area : '',
     notes: '',
     createdAt: new Date().toISOString(),
@@ -208,7 +214,7 @@ function renderList() {
   list.innerHTML = '';
 
   const sites = state.sites
-    .filter((s) => (s.name + ' ' + (s.area || '')).toLowerCase().includes(q))
+    .filter((s) => [s.name, s.area, s.owner].join(' ').toLowerCase().includes(q))
     .filter((s) => filter === 'all'
       || (filter === 'warn' ? siteAlerts(s).length > 0 : filter === 'done' ? isAllDone(s) : !isAllDone(s)))
     // 警告のある現場を上に、その中は更新が新しい順
@@ -230,6 +236,7 @@ function renderList() {
       <div class="folder-body">
         <div class="area"></div>
         <div class="name"></div>
+        <div class="owner"></div>
         <div class="work"></div>
         <div class="sub"></div>
         <div class="folder-foot">
@@ -240,6 +247,8 @@ function renderList() {
     li.querySelector('.name').textContent = site.name;
     li.querySelector('.area').textContent = site.area || '';
     li.querySelector('.area').hidden = !site.area;
+    li.querySelector('.owner').textContent = site.owner ? '担当：' + site.owner : '担当：未入力';
+    li.querySelector('.owner').classList.toggle('is-unset', !site.owner);
     li.querySelector('.work').textContent = site.workDate ? '工事 ' + workDateLabel(site) : '工事実行日 未定';
     li.querySelector('.work').classList.toggle('is-unset', !site.workDate);
     li.querySelector('.sub').textContent = !total ? '項目なし'
@@ -294,6 +303,7 @@ function showDetail(keepScroll = false) {
   $('pageTitle').hidden = false;
   $('pageTitle').textContent = site.name;
   $('siteNameInput').value = site.name;
+  $('ownerInput').value = site.owner || '';
   $('siteArea').textContent = site.area || '';
   $('siteArea').hidden = !site.area;
   $('siteNotes').value = site.notes || '';
@@ -409,6 +419,8 @@ document.querySelectorAll('.chip').forEach((chip) => {
   });
 });
 
+$('newSiteOwner').value = lastOwner();
+
 $('templatePicker').innerHTML = Object.keys(TEMPLATES).map((area, i) => `
   <label class="template-option">
     <input type="radio" name="template" value="${area}"${i === 0 ? ' checked' : ''}>
@@ -420,7 +432,9 @@ $('addSiteForm').addEventListener('submit', (e) => {
   const name = $('newSiteName').value.trim();
   if (!name) return;
   const area = document.querySelector('input[name="template"]:checked')?.value;
-  const site = newSite(name, area);
+  const owner = $('newSiteOwner').value.trim();
+  if (owner) rememberOwner(owner);
+  const site = newSite(name, area, owner);
   state.sites.push(site);
   persistSite(site, true);
   $('newSiteName').value = '';
@@ -443,6 +457,12 @@ $('siteNameInput').addEventListener('input', (e) => {
   const site = getSite(currentId);
   site.name = e.target.value;
   $('pageTitle').textContent = site.name || '（無題）';
+  touch(site);
+});
+
+$('ownerInput').addEventListener('input', (e) => {
+  const site = getSite(currentId);
+  site.owner = e.target.value;
   touch(site);
 });
 

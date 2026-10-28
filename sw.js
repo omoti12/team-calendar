@@ -1,12 +1,12 @@
 // オフラインでも開けるようにするサービスワーカー
 // 方針: ネットにつながる時は常に最新を取りに行き（更新がすぐ反映される）、つながらない時だけ保存済みを使う
-const CACHE = 'genba-kanri-v15';
+const CACHE = 'genba-kanri-v16';
 const APP_FILES = [
   './',
   'index.html',
-  'style.css?v=15',
-  'app.js?v=15',
-  'cloud.js?v=15',
+  'style.css?v=16',
+  'app.js?v=16',
+  'cloud.js?v=16',
   'vendor/firebase-10.14.1/firebase-app-compat.js',
   'vendor/firebase-10.14.1/firebase-firestore-compat.js',
   'manifest.webmanifest',
