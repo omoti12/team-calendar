@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 合言葉のハッシュ（64文字）ごとのチームの現場データ。
+    // チームの一覧は取得できないので、合言葉を知っている人だけが読み書きできる
+    match /teams/{team}/sites/{site} {
+      allow read, write: if request.auth != null && team.size() == 64;
+    }
+  }
+}

@@ -1,4 +1,5 @@
-// 現場管理（仮版）: データはこの端末のブラウザ (localStorage) に保存
+// 現場管理: 合言葉を入れるとクラウド（cloud.js）に保存してチームで共有する。
+// クラウドが使えない環境（ファイルを直接開いた時など）は、この端末のブラウザ (localStorage) に保存
 const STORAGE_KEY = 'genba-kanri-v1';
 
 // 地域ごとの項目セット（現場を作る時に選ぶ）
@@ -53,6 +54,8 @@ const RENAMED_TASKS = {
   '申請・施工日日程決め（警備）': ['警備'],
 };
 
+// 'cloud'（チームで共有）か 'local'（この端末だけ）
+let mode = 'local';
 let state = load();
 let currentId = null;
 let filter = 'all';
@@ -120,9 +123,21 @@ function newSite(name, area) {
   };
 }
 
+// 1現場分の変更を保存する
+function persistSite(site, immediate = false) {
+  if (mode === 'cloud') Cloud.saveSite(site, immediate);
+  else save();
+}
+
+function removeSite(id) {
+  state.sites = state.sites.filter((s) => s.id !== id);
+  if (mode === 'cloud') Cloud.deleteSite(id);
+  else save();
+}
+
 function touch(site) {
   site.updatedAt = new Date().toISOString();
-  save();
+  persistSite(site);
   showSaveStatus('自動保存済み', false);
 }
 
@@ -238,7 +253,9 @@ function renderList() {
   $('countText').textContent = `${sites.length} 件`;
 
   const empty = $('emptyMsg');
-  if (state.sites.length === 0) {
+  if (!$('cloudLoading').hidden) {
+    empty.hidden = true;
+  } else if (state.sites.length === 0) {
     empty.textContent = 'まだ現場がありません。上の欄に現場名を入れて「追加」を押してください。';
     empty.hidden = false;
   } else if (sites.length === 0) {
@@ -266,7 +283,7 @@ function showList() {
   renderList();
 }
 
-function showDetail() {
+function showDetail(keepScroll = false) {
   const site = getSite(currentId);
   if (!site) return showList();
   showSaveStatus('', false);
@@ -282,7 +299,7 @@ function showDetail() {
   $('workDateInput').value = site.workDate || '';
   renderWorkDate(site);
   renderTasks(site);
-  window.scrollTo(0, 0);
+  if (!keepScroll) window.scrollTo(0, 0);
 }
 
 function renderWorkDate(site) {
@@ -404,7 +421,7 @@ $('addSiteForm').addEventListener('submit', (e) => {
   const area = document.querySelector('input[name="template"]:checked')?.value;
   const site = newSite(name, area);
   state.sites.push(site);
-  save();
+  persistSite(site, true);
   $('newSiteName').value = '';
   openSite(site.id);
 });
@@ -414,9 +431,11 @@ $('backToListBtn').addEventListener('click', showList);
 
 $('saveBtn').addEventListener('click', () => {
   const site = getSite(currentId);
-  if (site) site.updatedAt = new Date().toISOString();
-  save();
-  showSaveStatus('✓ 保存しました', true);
+  if (site) {
+    site.updatedAt = new Date().toISOString();
+    persistSite(site, true);
+  }
+  showSaveStatus(mode === 'cloud' && !navigator.onLine ? '✓ 保存しました（電波が戻ったら送信）' : '✓ 保存しました', true);
 });
 
 $('siteNameInput').addEventListener('input', (e) => {
@@ -450,9 +469,8 @@ $('addTaskBtn').addEventListener('click', () => {
 
 $('deleteSiteBtn').addEventListener('click', async () => {
   const site = getSite(currentId);
-  if (!(await ask(`現場「${site.name}」を削除しますか？\n元に戻せません。`, '削除'))) return;
-  state.sites = state.sites.filter((s) => s.id !== site.id);
-  save();
+  if (!(await ask(`現場「${site.name}」を削除しますか？\n${mode === 'cloud' ? 'チーム全員の画面から消え、' : ''}元に戻せません。`, '削除'))) return;
+  removeSite(site.id);
   showList();
 });
 
@@ -480,9 +498,18 @@ $('importInput').addEventListener('change', async (e) => {
   try {
     const data = JSON.parse(await file.text());
     if (!Array.isArray(data.sites)) throw new Error('形式が違います');
-    if (!(await ask(`${data.sites.length} 件の現場を読み込みます。今のデータは置き換わります。よろしいですか？`, '読み込む'))) return;
-    state = migrate(data);
-    save();
+    if (mode === 'cloud') {
+      if (!(await ask(`${data.sites.length} 件の現場をチームのデータに追加します（同じ現場は上書き）。よろしいですか？`, '読み込む'))) return;
+      for (const site of migrate(data).sites) {
+        const i = state.sites.findIndex((s) => s.id === site.id);
+        if (i === -1) state.sites.push(site); else state.sites[i] = site;
+        persistSite(site, true);
+      }
+    } else {
+      if (!(await ask(`${data.sites.length} 件の現場を読み込みます。今のデータは置き換わります。よろしいですか？`, '読み込む'))) return;
+      state = migrate(data);
+      save();
+    }
     showList();
   } catch (err) {
     notify('読み込めませんでした: ' + err.message);
@@ -529,6 +556,135 @@ window.addEventListener('hashchange', () => {
   if (id && getSite(id)) { currentId = id; showDetail(); } else if (!id) showList();
 });
 
+/* ---------- クラウド共有 ---------- */
+const cloudAvailable = () => typeof Cloud !== 'undefined' && Cloud.enabled;
+let detailNeedsRefresh = false;
+
+function showCloudStatus(status, err) {
+  const el = $('syncStatus');
+  if (!el) return;
+  const labels = {
+    synced: '☁ 共有中',
+    saving: '⏳ 送信中…',
+    offline: '📴 オフライン',
+    error: '⚠️ クラウドに接続できません',
+  };
+  el.hidden = false;
+  el.textContent = labels[status] || '';
+  el.dataset.status = status;
+  $('cloudError').hidden = status !== 'error';
+  if (status === 'error') {
+    const settingsProblem = err && /permission-denied|configuration-not-found|operation-not-allowed|admin-restricted|not-found|failed-precondition|unauthorized-domain/.test(err.code || '');
+    $('cloudError').textContent = '⚠️ クラウドに接続できませんでした。' + (settingsProblem
+      ? 'Firebase の設定（匿名ログイン・データベース・ルール）が終わっていない可能性があります。'
+      : '電波を確認して、もう一度開いてください。') + (err ? `（${err.code || err.message}）` : '');
+  }
+}
+
+// 他の人の変更が届いた時に画面を更新する（入力中の欄は邪魔しない）
+function applyRemoteSites(sites, changedByOthers) {
+  state = migrate({ sites });
+  $('cloudLoading').hidden = true;
+  if (!$('listView').hidden) return renderList();
+  if ($('detailView').hidden || !currentId) return;
+  if (!getSite(currentId)) {
+    notify('この現場は他の人が削除しました。');
+    return showList();
+  }
+  if (!changedByOthers.includes(currentId)) return;
+  const typing = $('detailView').contains(document.activeElement)
+    && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if (typing) detailNeedsRefresh = true;
+  else showDetail(true);
+}
+
+$('detailView').addEventListener('focusout', () => {
+  setTimeout(() => {
+    if (!detailNeedsRefresh || $('detailView').contains(document.activeElement)) return;
+    detailNeedsRefresh = false;
+    if (!$('detailView').hidden && currentId) showDetail(true);
+  }, 0);
+});
+
+async function startCloud(teamId) {
+  mode = 'cloud';
+  state = { sites: [] };
+  $('cloudLoading').hidden = false;
+  try {
+    await Cloud.start(teamId, applyRemoteSites, showCloudStatus);
+  } catch (err) {
+    $('cloudLoading').hidden = true;
+    showCloudStatus('error', err);
+  }
+}
+
+// この端末に残っている、クラウドに上げていないデータ
+function localOnlySites() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return data && Array.isArray(data.sites) ? migrate(data).sites : [];
+  } catch (e) { return []; }
+}
+
+async function offerUploadLocal() {
+  const sites = localOnlySites();
+  if (!sites.length) return;
+  const ok = await ask(`このスマホに保存されている現場が ${sites.length} 件あります。\nチームのデータに移しますか？`, '移す');
+  if (!ok) return;
+  for (const site of sites) {
+    if (!state.sites.some((s) => s.id === site.id)) state.sites.push(site);
+    persistSite(site, true);
+  }
+  // 念のため元のデータは消さずに別名で残しておく
+  try {
+    localStorage.setItem(STORAGE_KEY + '-backup', localStorage.getItem(STORAGE_KEY));
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) { /* 残っていても次回また聞くだけ */ }
+  renderList();
+}
+
+$('passForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = $('passInput').value.trim();
+  if (code.length < 4) return notify('合言葉は4文字以上にしてください。');
+  const teamId = await Cloud.teamIdFor(code);
+  Cloud.setTeam(teamId);
+  $('passInput').value = '';
+  $('passView').hidden = true;
+  document.querySelector('.app-header').hidden = false;
+  await startCloud(teamId);
+  startApp();
+  offerUploadLocal();
+});
+
+$('logoutBtn').addEventListener('click', async () => {
+  $('menu').hidden = true;
+  if (!(await ask('合言葉を入れ直しますか？\n（データはクラウドに残ります）', '入れ直す'))) return;
+  await Cloud.flush().catch(() => {});
+  Cloud.setTeam(null);
+  location.reload();
+});
+
 /* 起動 */
-const initial = location.hash.slice(1);
-if (initial && getSite(initial)) { currentId = initial; showDetail(); } else showList();
+function startApp() {
+  const initial = location.hash.slice(1);
+  if (initial && getSite(initial)) { currentId = initial; showDetail(); } else showList();
+}
+
+async function boot() {
+  if (!cloudAvailable()) {
+    $('logoutBtn').hidden = true;
+    return startApp();
+  }
+  const teamId = Cloud.getTeam();
+  if (!teamId) {
+    document.querySelector('.app-header').hidden = true;
+    $('listView').hidden = true;
+    $('passView').hidden = false;
+    return;
+  }
+  await startCloud(teamId);
+  startApp();
+  offerUploadLocal();
+}
+boot();

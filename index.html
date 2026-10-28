@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="現場管理">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
   <header class="app-header">
@@ -21,17 +21,32 @@
       <span id="crumbSep" class="crumb-sep" hidden>›</span>
       <h1 id="pageTitle" hidden></h1>
     </nav>
+    <span id="syncStatus" class="sync-status" role="status" hidden></span>
     <button id="menuBtn" class="icon-btn" aria-label="メニュー">⋯</button>
   </header>
 
   <div id="menu" class="menu" hidden>
     <button id="installBtn">ホーム画面に追加</button>
+    <button id="logoutBtn">合言葉を入れ直す</button>
     <button id="exportBtn">データを書き出す (JSON)</button>
     <label class="menu-file">データを読み込む
       <input id="importInput" type="file" accept="application/json" hidden>
     </label>
     <button id="printBtn">印刷</button>
   </div>
+
+  <!-- 合言葉の入力（クラウド共有） -->
+  <main id="passView" class="pass-view" hidden>
+    <img class="pass-icon" src="icons/icon-192.png" alt="" width="80" height="80">
+    <h1>現場管理</h1>
+    <p class="pass-lead">チームの合言葉を入れてください。<br>同じ合言葉を入れた人どうしで、同じ現場データが見られます。</p>
+    <form id="passForm" class="pass-form">
+      <label for="passInput">合言葉</label>
+      <input id="passInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例：はなこ工務店2026" required>
+      <button type="submit">はじめる</button>
+    </form>
+    <p class="pass-note">はじめて使う時は、ここで決めた言葉がチームの合言葉になります。他の人には同じ言葉を伝えてください。合言葉を知っている人は誰でも見たり書き換えたりできるので、推測されにくい言葉にしてください。</p>
+  </main>
 
   <!-- 現場一覧 -->
   <main id="listView">
@@ -55,6 +70,8 @@
         <button type="submit">＋ 追加</button>
       </div>
     </form>
+    <p id="cloudError" class="cloud-error" role="alert" hidden></p>
+    <p id="cloudLoading" class="cloud-loading" hidden>☁ チームのデータを読み込み中…</p>
     <ul id="siteList" class="folder-grid"></ul>
     <p id="emptyMsg" class="empty" hidden></p>
   </main>
@@ -120,6 +137,10 @@
     </tr>
   </template>
 
-  <script src="app.js?v=13"></script>
+  <script src="vendor/firebase-10.14.1/firebase-app-compat.js"></script>
+  <script src="vendor/firebase-10.14.1/firebase-auth-compat.js"></script>
+  <script src="vendor/firebase-10.14.1/firebase-firestore-compat.js"></script>
+  <script src="cloud.js?v=14"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
