@@ -1,17 +1,46 @@
 // 現場管理（仮版）: データはこの端末のブラウザ (localStorage) に保存
 const STORAGE_KEY = 'genba-kanri-v1';
 
-// 紙の枠と同じ初期項目
-const DEFAULT_TASKS = [
-  'カッター',
-  'ダンプ',
-  '警備',
-  '道路使用 提出',
-  '道路使用 受取り',
-  'PR',
-  '事前打合せ（施工日前日）',
-  '組合にメーター取りに行く',
-];
+// 地域ごとの項目セット（現場を作る時に選ぶ）
+const TEMPLATES = {
+  'さいたま市': [
+    '申請・日程決め',
+    'ダンプ',
+    'カッター',
+    '警備',
+    '道路占用 受取',
+    '道路使用 提出',
+    'PR',
+    '道路使用 受取',
+    '事前打合せ',
+    'メーター受取',
+  ],
+  '川口市': [
+    '事前打合せ',
+    '預かり',
+    '申請',
+    '道路使用 受取',
+    '道路使用 提出',
+    '道路使用 受取',
+    '日程決め',
+    'PR',
+    'ダンプ',
+    '警備',
+    'カッター',
+  ],
+  '東京都': [
+    '申請',
+    '道路占用 受取',
+    '日程決め',
+    'ダンプ',
+    '警備',
+    'カッター',
+    '道路使用 提出',
+    '道路使用 受取',
+    'PR',
+  ],
+  'なし（自分で追加）': [],
+};
 
 const $ = (id) => document.getElementById(id);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -22,7 +51,6 @@ const RENAMED_TASKS = {
   '申請・施工日日程決め（カッター）': ['カッター'],
   '申請・施工日日程決め（ダンプ）': ['ダンプ'],
   '申請・施工日日程決め（警備）': ['警備'],
-  '道路占用 受取り': [],
 };
 
 let state = load();
@@ -80,14 +108,15 @@ function ask(message, okLabel = 'OK', cancel = true) {
 }
 const notify = (message) => ask(message, 'OK', false);
 
-function newSite(name) {
+function newSite(name, area) {
   return {
     id: uid(),
     name,
+    area: area in TEMPLATES && TEMPLATES[area].length ? area : '',
     notes: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    tasks: DEFAULT_TASKS.map((title) => ({ id: uid(), title, date: '', qty: '', doneDate: '', note: '', done: false })),
+    tasks: (TEMPLATES[area] || []).map((title) => ({ id: uid(), title, date: '', qty: '', doneDate: '', note: '', done: false })),
   };
 }
 
@@ -164,7 +193,7 @@ function renderList() {
   list.innerHTML = '';
 
   const sites = state.sites
-    .filter((s) => s.name.toLowerCase().includes(q))
+    .filter((s) => (s.name + ' ' + (s.area || '')).toLowerCase().includes(q))
     .filter((s) => filter === 'all'
       || (filter === 'warn' ? siteAlerts(s).length > 0 : filter === 'done' ? isAllDone(s) : !isAllDone(s)))
     // 警告のある現場を上に、その中は更新が新しい順
@@ -184,6 +213,7 @@ function renderList() {
         ? `⚠️ ${overdue ? '期限切れ' : '期限間近'} ${alerts.length}件`
         : done ? '✓ 完了' : '未完了'}</div>
       <div class="folder-body">
+        <div class="area"></div>
         <div class="name"></div>
         <div class="work"></div>
         <div class="sub"></div>
@@ -193,6 +223,8 @@ function renderList() {
         </div>
       </div>`;
     li.querySelector('.name').textContent = site.name;
+    li.querySelector('.area').textContent = site.area || '';
+    li.querySelector('.area').hidden = !site.area;
     li.querySelector('.work').textContent = site.workDate ? '工事 ' + workDateLabel(site) : '工事実行日 未定';
     li.querySelector('.work').classList.toggle('is-unset', !site.workDate);
     li.querySelector('.sub').textContent = !total ? '項目なし'
@@ -244,6 +276,8 @@ function showDetail() {
   $('pageTitle').hidden = false;
   $('pageTitle').textContent = site.name;
   $('siteNameInput').value = site.name;
+  $('siteArea').textContent = site.area || '';
+  $('siteArea').hidden = !site.area;
   $('siteNotes').value = site.notes || '';
   $('workDateInput').value = site.workDate || '';
   renderWorkDate(site);
@@ -357,11 +391,18 @@ document.querySelectorAll('.chip').forEach((chip) => {
   });
 });
 
+$('templatePicker').innerHTML = Object.keys(TEMPLATES).map((area, i) => `
+  <label class="template-option">
+    <input type="radio" name="template" value="${area}"${i === 0 ? ' checked' : ''}>
+    <span>${area}</span>
+  </label>`).join('');
+
 $('addSiteForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const name = $('newSiteName').value.trim();
   if (!name) return;
-  const site = newSite(name);
+  const area = document.querySelector('input[name="template"]:checked')?.value;
+  const site = newSite(name, area);
   state.sites.push(site);
   save();
   $('newSiteName').value = '';

@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="現場管理">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
   <header class="app-header">
@@ -46,8 +46,14 @@
       <button class="chip chip-warn" data-filter="warn">⚠️ 期限注意</button>
     </div>
     <form id="addSiteForm" class="add-site">
-      <input id="newSiteName" type="text" placeholder="新しい現場名を入力" required>
-      <button type="submit">＋ 追加</button>
+      <fieldset class="template-picker">
+        <legend>項目セット</legend>
+        <div id="templatePicker" class="template-options"></div>
+      </fieldset>
+      <div class="add-site-row">
+        <input id="newSiteName" type="text" placeholder="新しい現場名を入力" required>
+        <button type="submit">＋ 追加</button>
+      </div>
     </form>
     <ul id="siteList" class="folder-grid"></ul>
     <p id="emptyMsg" class="empty" hidden></p>
@@ -57,6 +63,7 @@
   <main id="detailView" hidden>
     <div class="sheet">
     <div class="site-meta">
+      <span id="siteArea" class="site-area" hidden></span>
       <input id="siteNameInput" class="site-name" type="text" aria-label="現場名">
       <div class="work-date">
         <label for="workDateInput">工事実行日</label>
@@ -113,6 +120,6 @@
     </tr>
   </template>
 
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

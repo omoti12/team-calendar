@@ -1,11 +1,11 @@
 // オフラインでも開けるようにするサービスワーカー
 // 方針: ネットにつながる時は常に最新を取りに行き（更新がすぐ反映される）、つながらない時だけ保存済みを使う
-const CACHE = 'genba-kanri-v12';
+const CACHE = 'genba-kanri-v13';
 const APP_FILES = [
   './',
   'index.html',
-  'style.css?v=12',
-  'app.js?v=12',
+  'style.css?v=13',
+  'app.js?v=13',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
