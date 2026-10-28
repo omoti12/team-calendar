@@ -1,5 +1,6 @@
 // クラウド保存（Firebase）: 同じ合言葉を入れた人どうしで同じデータを見る
-// データは teams/{合言葉のハッシュ}/sites/{現場ID} に1現場1ドキュメントで保存する
+// データは teams/{合言葉のハッシュ}/sites/{現場ID} に1現場1ドキュメントで保存する。
+// ログインは使わず、合言葉のハッシュを知っていることを鍵にする（firestore.rules 参照）
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyDUYTW814BA_TKts1sYE4cGGF2yxrwXnYQ',
   authDomain: 'genba-kanri-842b7.firebaseapp.com',
@@ -12,7 +13,7 @@ const FIREBASE_CONFIG = {
 const TEAM_KEY = 'genba-kanri-team';
 const SAVE_DELAY_MS = 600;
 
-// Firebase 側の設定（匿名ログイン・データベース・ルール）が終わるまでは false にしておく。
+// Firebase 側の設定（データベース・ルール）が終わるまでは false にしておく。
 // false の間は今まで通りこの端末だけに保存する（テスト時は localStorage の genba-kanri-cloud-test を '1' に）
 const CLOUD_READY = false;
 const cloudTest = (() => { try { return localStorage.getItem('genba-kanri-cloud-test') === '1'; } catch (e) { return false; } })();
@@ -52,14 +53,6 @@ const Cloud = {
       try { await this.db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* 使えない端末ではネットのみ */ }
     }
     this.teamId = teamId;
-
-    await new Promise((resolve, reject) => {
-      const stop = firebase.auth().onAuthStateChanged((user) => {
-        stop();
-        if (user) resolve();
-        else firebase.auth().signInAnonymously().then(resolve, reject);
-      }, reject);
-    });
 
     this.col().onSnapshot({ includeMetadataChanges: true }, (snap) => {
       const changedByOthers = snap.docChanges()

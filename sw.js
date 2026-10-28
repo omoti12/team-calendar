@@ -8,7 +8,6 @@ const APP_FILES = [
   'app.js?v=14',
   'cloud.js?v=14',
   'vendor/firebase-10.14.1/firebase-app-compat.js',
-  'vendor/firebase-10.14.1/firebase-auth-compat.js',
   'vendor/firebase-10.14.1/firebase-firestore-compat.js',
   'manifest.webmanifest',
   'icons/icon-192.png',

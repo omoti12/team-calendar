@@ -576,7 +576,7 @@ function showCloudStatus(status, err) {
   if (status === 'error') {
     const settingsProblem = err && /permission-denied|configuration-not-found|operation-not-allowed|admin-restricted|not-found|failed-precondition|unauthorized-domain/.test(err.code || '');
     $('cloudError').textContent = '⚠️ クラウドに接続できませんでした。' + (settingsProblem
-      ? 'Firebase の設定（匿名ログイン・データベース・ルール）が終わっていない可能性があります。'
+      ? 'Firebase の設定（データベース・ルール）に問題がある可能性があります。'
       : '電波を確認して、もう一度開いてください。') + (err ? `（${err.code || err.message}）` : '');
   }
 }
