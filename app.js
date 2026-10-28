@@ -274,6 +274,7 @@ function openSite(id) {
 }
 
 function showList() {
+  if (mode === 'cloud') Cloud.flush().catch(() => {});
   currentId = null;
   history.replaceState(null, '', location.pathname);
   $('detailView').hidden = true;
@@ -564,7 +565,7 @@ function showCloudStatus(status, err) {
   const el = $('syncStatus');
   if (!el) return;
   const labels = {
-    synced: '☁ 共有中',
+    synced: '● 共有中',
     saving: '⏳ 送信中…',
     offline: '📴 オフライン',
     error: '⚠️ クラウドに接続できません',
@@ -605,6 +606,11 @@ $('detailView').addEventListener('focusout', () => {
     if (!$('detailView').hidden && currentId) showDetail(true);
   }, 0);
 });
+
+// アプリを閉じる・切り替える時は、待たせている変更をすぐ送る
+const flushNow = () => { if (mode === 'cloud') Cloud.flush().catch(() => {}); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNow(); });
+window.addEventListener('pagehide', flushNow);
 
 async function startCloud(teamId) {
   mode = 'cloud';

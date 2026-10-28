@@ -15,7 +15,7 @@ const SAVE_DELAY_MS = 600;
 
 // Firebase 側の設定（データベース・ルール）が終わるまでは false にしておく。
 // false の間は今まで通りこの端末だけに保存する（テスト時は localStorage の genba-kanri-cloud-test を '1' に）
-const CLOUD_READY = false;
+const CLOUD_READY = true;
 const cloudTest = (() => { try { return localStorage.getItem('genba-kanri-cloud-test') === '1'; } catch (e) { return false; } })();
 
 const Cloud = {
