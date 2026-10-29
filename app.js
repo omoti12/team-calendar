@@ -158,7 +158,7 @@ function persistSite(site, immediate = false) {
 
 function removeSite(id) {
   state.sites = state.sites.filter((s) => s.id !== id);
-  if (mode === 'cloud') Cloud.deleteSite(id);
+  if (mode === 'cloud') Cloud.deleteSite(id).catch(() => {});
   else save();
 }
 
@@ -305,6 +305,7 @@ function openSite(id) {
 
 function showList() {
   if (mode === 'cloud') Cloud.flush().catch(() => {});
+  if (typeof SiteDocs !== 'undefined') SiteDocs.close();
   currentId = null;
   history.replaceState(null, '', location.pathname);
   $('detailView').hidden = true;
@@ -331,6 +332,7 @@ function showDetail(keepScroll = false) {
   $('workDateInput').value = site.workDate || '';
   renderWorkDate(site);
   renderTasks(site);
+  if (typeof SiteDocs !== 'undefined') SiteDocs.open(site);
   if (!keepScroll) window.scrollTo(0, 0);
 }
 
@@ -816,6 +818,7 @@ function startApp() {
 }
 
 async function boot() {
+  if (typeof SiteDocs !== 'undefined') SiteDocs.init();
   if (!cloudAvailable()) {
     $('logoutBtn').hidden = true;
     $('pushBtn').hidden = true;

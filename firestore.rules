@@ -11,6 +11,21 @@ service cloud.firestore {
         && request.resource.data.tasks.size() <= 300;
     }
 
+    // 現場資料の写真（一覧用の小さい画像と、開いた時に読む大きい画像）
+    match /teams/{team}/sites/{site}/photos/{photo} {
+      allow read, delete: if team.size() == 64;
+      allow create, update: if team.size() == 64
+        && request.resource.data.id == photo
+        && request.resource.data.thumb is string
+        && request.resource.data.thumb.size() < 120000;
+    }
+    match /teams/{team}/sites/{site}/photoData/{photo} {
+      allow read, delete: if team.size() == 64;
+      allow create: if team.size() == 64
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 1000000;
+    }
+
     // 通知を受け取る端末の登録。書き込みと削除だけでき、読むのは通知の送り役（管理者権限）だけ
     match /teams/{team}/devices/{device} {
       allow create, update: if team.size() == 64

@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="現場管理">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="stylesheet" href="style.css?v=18">
+  <link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
   <header class="app-header">
@@ -114,6 +114,40 @@
 
     <button id="addTaskBtn" class="add-task">＋ 項目を追加</button>
 
+    <!-- 現場資料（写真をフォルダで整理） -->
+    <section id="docsSection" class="docs" aria-labelledby="docsRoot">
+      <div class="docs-head">
+        <h2 class="docs-title">
+          <button id="docsRoot" type="button" class="docs-crumb">📁 現場資料</button>
+          <span id="docsCrumbSep" class="docs-sep" hidden>›</span>
+          <span id="docsFolderName" class="docs-folder-name"></span>
+        </h2>
+        <span id="docsCount" class="docs-count"></span>
+      </div>
+      <p id="docsLocalNote" class="docs-note" hidden>写真は、チームの合言葉を入れて共有している時に使えます。</p>
+      <div id="docsBody">
+        <div id="docsToolbar" class="docs-toolbar">
+          <label class="docs-btn is-primary">＋ 写真を追加<input id="photoInput" type="file" accept="image/*" multiple hidden></label>
+          <button id="newFolderBtn" type="button" class="docs-btn">＋ フォルダを作る</button>
+          <button id="renameFolderBtn" type="button" class="docs-btn" hidden>名前を変更</button>
+          <button id="deleteFolderBtn" type="button" class="docs-btn is-danger" hidden>フォルダを削除</button>
+          <button id="selectBtn" type="button" class="docs-btn">選択</button>
+        </div>
+        <div id="selectBar" class="select-bar" hidden>
+          <span id="selectCount" class="select-count"></span>
+          <div class="select-actions">
+            <button id="toFolderBtn" type="button" class="docs-btn is-primary">フォルダに入れる</button>
+            <button id="unfileBtn" type="button" class="docs-btn" hidden>フォルダから出す</button>
+            <button id="deletePhotosBtn" type="button" class="docs-btn is-danger">削除</button>
+            <button id="cancelSelectBtn" type="button" class="docs-btn">やめる</button>
+          </div>
+        </div>
+        <p id="uploadStatus" class="upload-status" role="status" hidden></p>
+        <div id="docsGrid" class="docs-grid"></div>
+        <p id="docsEmpty" class="docs-empty" hidden></p>
+      </div>
+    </section>
+
     <label class="notes-label" for="siteNotes">メモ</label>
     <textarea id="siteNotes" rows="4" placeholder="自由に記入"></textarea>
     </div>
@@ -133,6 +167,46 @@
       <div class="toast-icon" aria-hidden="true">✓</div>
       <p id="toastTitle" class="toast-title"></p>
       <p id="toastText" class="toast-text"></p>
+    </div>
+  </div>
+
+  <!-- 写真を大きく見る -->
+  <div id="photoViewer" class="photo-viewer" role="dialog" aria-modal="true" aria-label="写真" hidden>
+    <div class="viewer-top">
+      <span id="viewerCaption" class="viewer-caption"></span>
+      <button id="viewerClose" type="button" class="viewer-btn" aria-label="閉じる">✕</button>
+    </div>
+    <div class="viewer-stage">
+      <button id="viewerPrev" type="button" class="viewer-nav" aria-label="前の写真">‹</button>
+      <img id="viewerImg" class="viewer-img" alt="">
+      <button id="viewerNext" type="button" class="viewer-nav" aria-label="次の写真">›</button>
+    </div>
+    <div class="viewer-bottom">
+      <button id="viewerMove" type="button" class="viewer-btn">フォルダに入れる</button>
+      <button id="viewerDelete" type="button" class="viewer-btn is-danger">削除</button>
+    </div>
+  </div>
+
+  <!-- フォルダ名の入力 -->
+  <div id="nameDialog" class="dialog-backdrop" hidden>
+    <form id="nameDialogForm" class="dialog" role="dialog" aria-modal="true" aria-labelledby="nameDialogMsg">
+      <p id="nameDialogMsg"></p>
+      <input id="nameDialogInput" class="name-input" type="text" maxlength="40" autocomplete="off" required>
+      <div class="dialog-actions">
+        <button id="nameDialogCancel" type="button" class="btn-sub">キャンセル</button>
+        <button type="submit" class="btn-main">決定</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 入れ先のフォルダを選ぶ -->
+  <div id="folderSheet" class="dialog-backdrop" hidden>
+    <div class="dialog folder-sheet" role="dialog" aria-modal="true" aria-labelledby="folderSheetTitle">
+      <p id="folderSheetTitle">どのフォルダに入れますか？</p>
+      <div id="folderSheetList" class="folder-list"></div>
+      <div class="dialog-actions">
+        <button id="folderSheetCancel" type="button" class="btn-sub">やめる</button>
+      </div>
     </div>
   </div>
 
@@ -161,7 +235,8 @@
 
   <script src="vendor/firebase-10.14.1/firebase-app-compat.js"></script>
   <script src="vendor/firebase-10.14.1/firebase-firestore-compat.js"></script>
-  <script src="cloud.js?v=18"></script>
-  <script src="app.js?v=18"></script>
+  <script src="cloud.js?v=19"></script>
+  <script src="docs.js?v=19"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

@@ -90,11 +90,63 @@ const Cloud = {
     return Promise.all([...this.pending.keys()].map((id) => this.write(id)));
   },
 
-  deleteSite(id) {
+  async deleteSite(id) {
     clearTimeout(this.timers.get(id));
     this.timers.delete(id);
     this.pending.delete(id);
-    return this.col().doc(id).delete();
+    await this.col().doc(id).delete();
+    // 現場資料（写真）も一緒に消す
+    const photos = await this.col().doc(id).collection('photos').get();
+    await this.deletePhotos(id, photos.docs.map((d) => d.id));
+  },
+
+  /* ---------- 現場資料（写真） ---------- */
+  photosCol(siteId) {
+    return this.col().doc(siteId).collection('photos');
+  },
+
+  photoDataDoc(siteId, photoId) {
+    return this.col().doc(siteId).collection('photoData').doc(photoId);
+  },
+
+  // 写真の一覧（小さい画像つき）を見張る。止める時は返り値の関数を呼ぶ
+  watchPhotos(siteId, onPhotos) {
+    return this.photosCol(siteId).orderBy('createdAt').onSnapshot(
+      (snap) => onPhotos(snap.docs.map((d) => d.data())),
+      (err) => onPhotos(null, err),
+    );
+  },
+
+  addPhoto(siteId, meta, data) {
+    const batch = this.db.batch();
+    batch.set(this.photosCol(siteId).doc(meta.id), meta);
+    batch.set(this.photoDataDoc(siteId, meta.id), { data });
+    return batch.commit();
+  },
+
+  async getPhotoData(siteId, photoId) {
+    const snap = await this.photoDataDoc(siteId, photoId).get();
+    return snap.exists ? snap.data().data : null;
+  },
+
+  // 1回に送れる件数に上限があるので、分けて送る
+  async inChunks(ids, perId) {
+    for (let i = 0; i < ids.length; i += 200) {
+      const batch = this.db.batch();
+      for (const id of ids.slice(i, i + 200)) perId(batch, id);
+      await batch.commit();
+    }
+  },
+
+  updatePhotos(siteId, ids, fields) {
+    return this.inChunks(ids, (batch, id) => batch.update(this.photosCol(siteId).doc(id), fields));
+  },
+
+  deletePhotos(siteId, ids) {
+    return this.inChunks(ids, (batch, id) => {
+      batch.delete(this.photosCol(siteId).doc(id));
+      batch.delete(this.photoDataDoc(siteId, id));
+    });
   },
 
   /* ---------- プッシュ通知 ---------- */
