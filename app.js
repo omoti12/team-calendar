@@ -379,12 +379,16 @@ function renderTasks(site) {
     date.value = task.date || '';
     qty.value = task.qty || '';
     doneDate.value = task.doneDate || '';
-    const paintQtyHint = () => { qty.placeholder = qtyHint(title.value); };
+    // 台数・人数の欄は、カッター・ダンプ・警備など数が要る項目（か、すでに入力がある項目）だけに出す
+    const paintQtyHint = () => {
+      qty.placeholder = qtyHint(title.value);
+      qty.closest('td').hidden = !qtyHint(title.value) && !qty.value;
+    };
     paintQtyHint();
 
     const warn = row.querySelector('.task-warn');
     const paintStatus = () => {
-      status.textContent = task.done ? '完了' : '未完了';
+      status.textContent = task.done ? '✓ 完了' : '未完了';
       status.className = 'status-btn ' + (task.done ? 'done' : 'open');
       row.classList.toggle('is-done', task.done);
       const alert = taskAlert(task);

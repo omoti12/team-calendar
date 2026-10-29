@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="現場管理">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
   <header class="app-header">
@@ -223,20 +223,20 @@
   <template id="taskRow">
     <tr>
       <td class="col-title"><textarea class="task-title" rows="1" placeholder="項目を入力"></textarea>
-          <input class="task-note" type="text" placeholder="備考">
+          <input class="task-note" type="text" placeholder="＋ 備考を書く">
           <span class="task-warn" hidden></span></td>
-      <td class="col-date" data-label="期限"><input class="task-date" type="date" aria-label="期限"></td>
+      <td class="col-date" data-label="期限"><input class="task-date" type="date" aria-label="期限" required></td>
       <td class="col-qty" data-label="台数・人数"><input class="task-qty" type="text" aria-label="台数・人数"></td>
-      <td class="col-done" data-label="完了日"><input class="task-done-date" type="date" aria-label="完了日"></td>
-      <td class="col-status" data-label="状態"><button class="status-btn"></button></td>
+      <td class="col-done" data-label="完了日"><input class="task-done-date" type="date" aria-label="完了日" required></td>
+      <td class="col-status"><button class="status-btn" type="button"></button></td>
       <td class="col-del"><button class="del-btn" aria-label="項目を削除">×</button></td>
     </tr>
   </template>
 
   <script src="vendor/firebase-10.14.1/firebase-app-compat.js"></script>
   <script src="vendor/firebase-10.14.1/firebase-firestore-compat.js"></script>
-  <script src="cloud.js?v=20"></script>
-  <script src="docs.js?v=20"></script>
-  <script src="app.js?v=20"></script>
+  <script src="cloud.js?v=21"></script>
+  <script src="docs.js?v=21"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>
