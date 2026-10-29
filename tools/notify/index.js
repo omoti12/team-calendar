@@ -3,6 +3,7 @@
 //   node index.js setup   … Firestore のルールを反映し、通知用の鍵（VAPID）がなければ作る
 //   node index.js notify  … 期限が2週間後・3日後〜今日で未完了の項目があるチームに通知する（毎日お昼）
 //   node index.js test    … 通知をオンにしている全端末にテスト通知を送る
+//   node index.js diagnose … チームごとの現場数などを数える（調査用、中身は出さない）
 //
 // 環境変数 FIREBASE_SERVICE_ACCOUNT に Firebase のサービスアカウント鍵（JSON）を入れて実行する。
 const fs = require('fs');
@@ -162,6 +163,26 @@ async function notify() {
   }
 }
 
+// 調査用: チームごとの現場数・端末数・最後の更新日時だけを出す（現場名などの中身は出さない）
+async function diagnose() {
+  const teams = new Map();
+  const add = (teamId) => {
+    if (!teams.has(teamId)) teams.set(teamId, { sites: 0, devices: 0, lastUpdate: '' });
+    return teams.get(teamId);
+  };
+  for (const doc of (await db.collectionGroup('sites').get()).docs) {
+    const t = add(doc.ref.parent.parent.id);
+    t.sites++;
+    const updated = doc.get('updatedAt') || '';
+    if (updated > t.lastUpdate) t.lastUpdate = updated;
+  }
+  for (const doc of (await db.collectionGroup('devices').get()).docs) add(doc.ref.parent.parent.id).devices++;
+  console.log(`チームの数: ${teams.size}`);
+  for (const [teamId, t] of teams) {
+    console.log(`チーム ${teamId.slice(0, 8)}…  現場 ${t.sites}件  通知の端末 ${t.devices}台  最後の更新 ${t.lastUpdate.slice(0, 16)}`);
+  }
+}
+
 async function testPush() {
   const teams = await devicesByTeam();
   for (const [teamId, devices] of teams) {
@@ -177,6 +198,7 @@ async function testPush() {
 
 (async () => {
   const mode = process.argv[2] || 'notify';
+  if (mode === 'diagnose') return diagnose();
   if (mode === 'setup') {
     await deployRules();
     await ensureVapidKeys();

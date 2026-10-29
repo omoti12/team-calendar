@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'notify = 期限の通知 / test = テスト通知 / setup = ルール反映と鍵の作成'
+        description: 'notify = 期限の通知 / test = テスト通知 / setup = ルール反映と鍵の作成 / diagnose = チームごとの件数を調べる'
         required: true
         default: notify
         type: choice
-        options: [notify, test, setup]
+        options: [notify, test, setup, diagnose]
 
 concurrency: notify
 
