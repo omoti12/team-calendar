@@ -1,7 +1,7 @@
 // 現場管理アプリのプッシュ通知（GitHub Actions から実行）
 //
 //   node index.js setup   … Firestore のルールを反映し、通知用の鍵（VAPID）がなければ作る
-//   node index.js notify  … 期限がちょうど2週間後で未完了の項目があるチームに通知する（毎日お昼）
+//   node index.js notify  … 期限が2週間後・3日後〜今日で未完了の項目があるチームに通知する（毎日お昼）
 //   node index.js test    … 通知をオンにしている全端末にテスト通知を送る
 //
 // 環境変数 FIREBASE_SERVICE_ACCOUNT に Firebase のサービスアカウント鍵（JSON）を入れて実行する。
@@ -10,7 +10,8 @@ const path = require('path');
 const admin = require('firebase-admin');
 const webpush = require('web-push');
 
-const NOTIFY_DAYS_BEFORE = 14;
+// 期限の何日前に知らせるか（2週間前と、3日前〜当日は毎日）
+const NOTIFY_DAYS_BEFORE = [14, 3, 2, 1, 0];
 const APP_URL = 'https://omoti12.github.io/team-calendar/';
 const CONTACT = 'mailto:noreply@example.com';
 
@@ -117,34 +118,45 @@ async function send(devices, payload) {
   return sent;
 }
 
+function daysLabel(days) {
+  if (days === 0) return '今日が期限';
+  if (days === 14) return 'あと2週間';
+  return `あと${days}日`;
+}
+
+// 現場ごとに1行: 「港区 芝：カッター（あと2日）、ダンプ（あと2週間）」
 function summarize(items) {
   const bySite = new Map();
-  for (const { site, task } of items) {
+  for (const { site, task, days } of items) {
     if (!bySite.has(site.name)) bySite.set(site.name, []);
-    bySite.get(site.name).push(task.title || '（無題）');
+    bySite.get(site.name).push(`${task.title || '（無題）'}（${daysLabel(days)}）`);
   }
   return [...bySite].map(([name, titles]) => `${name}：${titles.join('、')}`).join('\n');
 }
 
 async function notify() {
-  const target = jstDate(NOTIFY_DAYS_BEFORE);
-  console.log('期限が', target, 'の未完了項目を探します');
+  const targets = new Map(NOTIFY_DAYS_BEFORE.map((days) => [jstDate(days), days]));
+  console.log('期限が', [...targets.keys()].join(', '), 'の未完了項目を探します');
   const teams = await devicesByTeam();
   for (const [teamId, devices] of teams) {
     const sites = (await db.collection(`teams/${teamId}/sites`).get()).docs.map((d) => d.data());
     const items = [];
     for (const site of sites) {
       for (const task of site.tasks || []) {
-        if (!task.done && task.date === target) items.push({ site, task });
+        if (!task.done && targets.has(task.date)) items.push({ site, task, days: targets.get(task.date) });
       }
     }
     if (!items.length) continue;
-    const [, m, d] = target.split('-').map(Number);
+    // 期限の近い順に並べ、一番近いものを題名にする
+    items.sort((x, y) => x.days - y.days);
+    const nearest = items[0].days;
     const sent = await send(devices, {
-      title: `⚠️ 期限まであと2週間（${m}/${d}）`,
+      title: nearest === 0 ? `⚠️ 今日が期限の項目があります（${items.length}件）`
+        : nearest <= 3 ? `⚠️ 期限が近い項目があります（${items.length}件）`
+        : `期限まであと2週間の項目があります（${items.length}件）`,
       body: summarize(items),
       url: APP_URL,
-      tag: `deadline-${target}`,
+      tag: `deadline-${jstDate(0)}`,
     });
     console.log(`チーム ${teamId.slice(0, 8)}…: ${items.length}件の項目を ${sent}台に通知`);
   }
