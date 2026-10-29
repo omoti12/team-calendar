@@ -1,13 +1,13 @@
 // オフラインでも開けるようにするサービスワーカー
 // 方針: ネットにつながる時は常に最新を取りに行き（更新がすぐ反映される）、つながらない時だけ保存済みを使う
-const CACHE = 'genba-kanri-v19';
+const CACHE = 'genba-kanri-v20';
 const APP_FILES = [
   './',
   'index.html',
-  'style.css?v=19',
-  'app.js?v=19',
-  'cloud.js?v=19',
-  'docs.js?v=19',
+  'style.css?v=20',
+  'app.js?v=20',
+  'cloud.js?v=20',
+  'docs.js?v=20',
   'vendor/firebase-10.14.1/firebase-app-compat.js',
   'vendor/firebase-10.14.1/firebase-firestore-compat.js',
   'manifest.webmanifest',
@@ -38,6 +38,9 @@ self.addEventListener('push', (e) => {
     icon: 'icons/icon-192.png',
     badge: 'icons/badge-96.png', // ステータスバー用（形だけ白く表示される）
     tag: data.tag,
+    // 同じ種類の通知が残っていても、毎回ポップアップ・振動で知らせる
+    renotify: !!data.tag,
+    vibrate: [200, 100, 200],
     data: { url: data.url || './' },
   }));
 });

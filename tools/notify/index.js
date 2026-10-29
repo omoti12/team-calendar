@@ -157,7 +157,7 @@ async function testPush() {
       title: '現場管理：テスト通知',
       body: '通知が届くようになりました。期限の2週間前のお昼にお知らせします。',
       url: APP_URL,
-      tag: 'test',
+      tag: 'test-' + Date.now(),
     });
     console.log(`チーム ${teamId.slice(0, 8)}…: ${sent}台に送信`);
   }
