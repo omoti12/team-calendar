@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="現場管理">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
   <header class="app-header">
@@ -26,6 +26,7 @@
   </header>
 
   <div id="menu" class="menu" hidden>
+    <button id="pushBtn">通知をオンにする</button>
     <button id="installBtn">ホーム画面に追加</button>
     <button id="logoutBtn">合言葉を入れ直す</button>
     <button id="exportBtn">データを書き出す (JSON)</button>
@@ -72,6 +73,13 @@
       </div>
     </form>
     <p id="cloudError" class="cloud-error" role="alert" hidden></p>
+    <div id="pushBanner" class="push-banner" hidden>
+      <span>🔔 期限の2週間前のお昼に、スマホへ通知を送れます</span>
+      <span class="push-banner-actions">
+        <button id="pushBannerOn" class="push-on">通知をオンにする</button>
+        <button id="pushBannerLater" class="push-later">あとで</button>
+      </span>
+    </div>
     <p id="cloudLoading" class="cloud-loading" hidden>チームのデータを読み込み中…</p>
     <ul id="siteList" class="folder-grid"></ul>
     <p id="emptyMsg" class="empty" hidden></p>
@@ -119,6 +127,15 @@
     </div>
   </main>
 
+  <!-- 完了・保存の時に画面の真ん中に出すお知らせ -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden>
+    <div class="toast-card">
+      <div class="toast-icon" aria-hidden="true">✓</div>
+      <p id="toastTitle" class="toast-title"></p>
+      <p id="toastText" class="toast-text"></p>
+    </div>
+  </div>
+
   <div id="dialog" class="dialog-backdrop" hidden>
     <div class="dialog" role="alertdialog" aria-modal="true">
       <p id="dialogMsg"></p>
@@ -144,7 +161,7 @@
 
   <script src="vendor/firebase-10.14.1/firebase-app-compat.js"></script>
   <script src="vendor/firebase-10.14.1/firebase-firestore-compat.js"></script>
-  <script src="cloud.js?v=16"></script>
-  <script src="app.js?v=16"></script>
+  <script src="cloud.js?v=17"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>

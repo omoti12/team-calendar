@@ -96,4 +96,36 @@ const Cloud = {
     this.pending.delete(id);
     return this.col().doc(id).delete();
   },
+
+  /* ---------- プッシュ通知 ---------- */
+  // 通知用の公開鍵（通知の送り役が作って置いておく）
+  async pushPublicKey() {
+    try {
+      const snap = await this.db.doc('config/push').get();
+      return snap.exists ? snap.data().publicKey : null;
+    } catch (err) {
+      if (err.code === 'permission-denied') return null; // 送り役の準備（ルール反映）がまだ
+      throw err;
+    }
+  },
+
+  // 端末ごとの登録。ID は通知の宛先 URL から作るので、同じ端末を何度登録しても1件になる
+  async deviceId(subscription) {
+    const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(subscription.endpoint));
+    return [...new Uint8Array(hash)].slice(0, 16).map((b) => b.toString(16).padStart(2, '0')).join('');
+  },
+
+  async saveDevice(subscription) {
+    const id = await this.deviceId(subscription);
+    await this.db.collection('teams').doc(this.teamId).collection('devices').doc(id).set({
+      subscription: subscription.toJSON(),
+      updatedAt: new Date().toISOString(),
+      userAgent: navigator.userAgent.slice(0, 200),
+    });
+  },
+
+  async deleteDevice(subscription) {
+    const id = await this.deviceId(subscription);
+    await this.db.collection('teams').doc(this.teamId).collection('devices').doc(id).delete();
+  },
 };

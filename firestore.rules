@@ -10,5 +10,18 @@ service cloud.firestore {
         && request.resource.data.tasks is list
         && request.resource.data.tasks.size() <= 300;
     }
+
+    // 通知を受け取る端末の登録。書き込みと削除だけでき、読むのは通知の送り役（管理者権限）だけ
+    match /teams/{team}/devices/{device} {
+      allow create, update: if team.size() == 64
+        && request.resource.data.subscription is map
+        && request.resource.data.subscription.endpoint is string;
+      allow delete: if team.size() == 64;
+    }
+
+    // 通知用の公開鍵（アプリが読む）。秘密鍵などその他はアプリから一切読み書きできない
+    match /config/push {
+      allow read: if true;
+    }
   }
 }

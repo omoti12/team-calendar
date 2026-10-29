@@ -1,0 +1,44 @@
+# 毎日お昼（日本時間 12:00）に、期限がちょうど2週間後で未完了の項目をスマホに通知する
+name: 期限の通知
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # UTC 3:00 = 日本時間 12:00（GitHub の混み具合で数分〜数十分遅れることがある）
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'notify = 期限の通知 / test = テスト通知 / setup = ルール反映と鍵の作成'
+        required: true
+        default: notify
+        type: choice
+        options: [notify, test, setup]
+
+concurrency: notify
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    defaults:
+      run:
+        working-directory: tools/notify
+    steps:
+      # 鍵（Secrets）を登録するまでは何もしない
+      - name: 鍵が登録されているか確認
+        id: check
+        run: echo "ready=${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}" >> "$GITHUB_OUTPUT"
+        working-directory: .
+      - if: steps.check.outputs.ready == 'true'
+        uses: actions/checkout@v4
+      - if: steps.check.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: tools/notify/package-lock.json
+      - if: steps.check.outputs.ready == 'true'
+        run: npm ci
+      - if: steps.check.outputs.ready == 'true'
+        run: node index.js ${{ inputs.mode || 'notify' }}

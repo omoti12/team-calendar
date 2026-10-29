@@ -111,6 +111,27 @@ function ask(message, okLabel = 'OK', cancel = true) {
 }
 const notify = (message) => ask(message, 'OK', false);
 
+// 画面の真ん中に大きく出して、少ししたら消えるお知らせ（タップでもすぐ消える）
+let toastTimer;
+function toast(title, text = '', kind = 'done') {
+  $('toastTitle').textContent = title;
+  $('toastText').textContent = text;
+  $('toastText').hidden = !text;
+  $('toast').dataset.kind = kind;
+  $('toast').hidden = false;
+  $('toast').classList.remove('is-show');
+  void $('toast').offsetWidth; // アニメーションを毎回最初から
+  $('toast').classList.add('is-show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; }, 2000);
+}
+$('toast').addEventListener('click', () => { $('toast').hidden = true; });
+
+function cheerDone(site, task) {
+  if (isAllDone(site)) toast('全部完了です！', `「${site.name}」お疲れ様でした`, 'done');
+  else toast('お疲れ様です！', `「${task.title || '項目'}」を完了にしました`, 'done');
+}
+
 // 担当者名はこの端末に覚えておき、次に現場を作る時に最初から入れておく
 const OWNER_KEY = 'genba-kanri-owner';
 const lastOwner = () => { try { return localStorage.getItem(OWNER_KEY) || ''; } catch (e) { return ''; } };
@@ -379,8 +400,10 @@ function renderTasks(site) {
     doneDate.addEventListener('change', () => {
       task.doneDate = doneDate.value;
       // 完了日を入れたら完了扱いにする
-      if (doneDate.value && !task.done) task.done = true;
+      const becameDone = doneDate.value && !task.done;
+      if (becameDone) task.done = true;
       paintStatus();
+      if (becameDone) cheerDone(site, task);
       renderProgress(site);
       touch(site);
     });
@@ -392,6 +415,7 @@ function renderTasks(site) {
       paintStatus();
       renderProgress(site);
       touch(site);
+      if (task.done) cheerDone(site, task);
     });
     row.querySelector('.del-btn').addEventListener('click', async () => {
       if (task.title && !(await ask(`「${task.title}」を削除しますか？`, '削除'))) return;
@@ -450,7 +474,9 @@ $('saveBtn').addEventListener('click', () => {
     site.updatedAt = new Date().toISOString();
     persistSite(site, true);
   }
-  showSaveStatus(mode === 'cloud' && !navigator.onLine ? '✓ 保存しました（電波が戻ったら送信）' : '✓ 保存しました', true);
+  const offline = mode === 'cloud' && !navigator.onLine;
+  showSaveStatus(offline ? '✓ 保存しました（電波が戻ったら送信）' : '✓ 保存しました', true);
+  toast('保存しました', offline ? '電波が戻ったら、チームに送信します' : (mode === 'cloud' ? 'チームのみんなにも反映されます' : ''), 'save');
 });
 
 $('siteNameInput').addEventListener('input', (e) => {
@@ -680,13 +706,105 @@ $('passForm').addEventListener('submit', async (e) => {
   document.querySelector('.app-header').hidden = false;
   await startCloud(teamId);
   startApp();
-  offerUploadLocal();
+  await offerUploadLocal();
+  refreshPushUI();
+});
+
+/* ---------- プッシュ通知（期限の2週間前のお昼） ---------- */
+const PUSH_LATER_KEY = 'genba-kanri-push-later';
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const onIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const runningAsApp = () =>
+  window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+// 通知の公開鍵（base64url）を、ブラウザが受け取れる形に変える
+function base64UrlToBytes(text) {
+  const b64 = (text + '='.repeat((4 - (text.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+
+async function pushSubscription() {
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+async function refreshPushUI() {
+  const btn = $('pushBtn');
+  if (mode !== 'cloud' || !pushSupported()) {
+    btn.hidden = true;
+    $('pushBanner').hidden = true;
+    return;
+  }
+  // 通知の送り役の準備ができるまでは出さない
+  const key = await Cloud.pushPublicKey().catch(() => null);
+  if (!key) {
+    btn.hidden = true;
+    $('pushBanner').hidden = true;
+    return;
+  }
+  const sub = await pushSubscription().catch(() => null);
+  const on = !!sub && Notification.permission === 'granted';
+  btn.hidden = false;
+  btn.textContent = on ? '通知をオフにする' : '通知をオンにする';
+  let later = false;
+  try { later = localStorage.getItem(PUSH_LATER_KEY) === '1'; } catch (e) { /* 読めなければ出す */ }
+  $('pushBanner').hidden = on || later || Notification.permission === 'denied';
+  // 開くたびに登録し直しておく（宛先が変わっても届くように）
+  if (on) Cloud.saveDevice(sub).catch(() => {});
+}
+
+async function enablePush() {
+  if (onIOS() && !runningAsApp()) {
+    return notify('iPhone では、ホーム画面に追加したアプリから通知をオンにしてください。');
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    return notify('通知が許可されませんでした。\nスマホの設定で、このアプリ（またはブラウザ）の通知を許可してから、もう一度お試しください。');
+  }
+  try {
+    const key = await Cloud.pushPublicKey();
+    if (!key) return notify('通知の準備がまだ終わっていません。しばらくしてからもう一度お試しください。');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription())
+      || (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(key) }));
+    await Cloud.saveDevice(sub);
+    notify('通知をオンにしました。\n期限の2週間前のお昼にお知らせします。');
+  } catch (err) {
+    notify('通知をオンにできませんでした。電波を確認して、もう一度お試しください。（' + (err.code || err.message) + '）');
+  }
+  refreshPushUI();
+}
+
+async function disablePush() {
+  if (!(await ask('このスマホへの通知をオフにしますか？', 'オフにする'))) return;
+  const sub = await pushSubscription().catch(() => null);
+  if (sub) {
+    await Cloud.deleteDevice(sub).catch(() => {});
+    await sub.unsubscribe().catch(() => {});
+  }
+  refreshPushUI();
+}
+
+$('pushBtn').addEventListener('click', async () => {
+  $('menu').hidden = true;
+  const sub = await pushSubscription().catch(() => null);
+  if (sub && Notification.permission === 'granted') disablePush();
+  else enablePush();
+});
+$('pushBannerOn').addEventListener('click', enablePush);
+$('pushBannerLater').addEventListener('click', () => {
+  try { localStorage.setItem(PUSH_LATER_KEY, '1'); } catch (e) { /* 次回また出るだけ */ }
+  $('pushBanner').hidden = true;
 });
 
 $('logoutBtn').addEventListener('click', async () => {
   $('menu').hidden = true;
   if (!(await ask('合言葉を入れ直しますか？\n（データはクラウドに残ります）', '入れ直す'))) return;
   await Cloud.flush().catch(() => {});
+  // 前のチームの通知は止める
+  const sub = await pushSubscription().catch(() => null);
+  if (sub) await Cloud.deleteDevice(sub).catch(() => {});
   Cloud.setTeam(null);
   location.reload();
 });
@@ -700,6 +818,7 @@ function startApp() {
 async function boot() {
   if (!cloudAvailable()) {
     $('logoutBtn').hidden = true;
+    $('pushBtn').hidden = true;
     return startApp();
   }
   const teamId = Cloud.getTeam();
@@ -711,6 +830,7 @@ async function boot() {
   }
   await startCloud(teamId);
   startApp();
-  offerUploadLocal();
+  await offerUploadLocal();
+  refreshPushUI();
 }
 boot();

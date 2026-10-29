@@ -1,0 +1,15 @@
+{
+  "name": "genba-kanri-notify",
+  "private": true,
+  "description": "期限の2週間前に現場管理アプリへプッシュ通知を送る（GitHub Actions から毎日実行）",
+  "type": "commonjs",
+  "scripts": {
+    "notify": "node index.js notify",
+    "setup": "node index.js setup",
+    "test-push": "node index.js test"
+  },
+  "dependencies": {
+    "firebase-admin": "12.7.0",
+    "web-push": "3.6.7"
+  }
+}
