@@ -1,18 +1,19 @@
 // オフラインでも開けるようにするサービスワーカー
 // 方針: ネットにつながる時は常に最新を取りに行き（更新がすぐ反映される）、つながらない時だけ保存済みを使う
-const CACHE = 'genba-kanri-v17';
+const CACHE = 'genba-kanri-v18';
 const APP_FILES = [
   './',
   'index.html',
-  'style.css?v=17',
-  'app.js?v=17',
-  'cloud.js?v=17',
+  'style.css?v=18',
+  'app.js?v=18',
+  'cloud.js?v=18',
   'vendor/firebase-10.14.1/firebase-app-compat.js',
   'vendor/firebase-10.14.1/firebase-firestore-compat.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
+  'icons/badge-96.png',
 ];
 
 self.addEventListener('install', (e) => {
@@ -34,7 +35,7 @@ self.addEventListener('push', (e) => {
   e.waitUntil(self.registration.showNotification(data.title || '現場管理', {
     body: data.body || '',
     icon: 'icons/icon-192.png',
-    badge: 'icons/icon-192.png',
+    badge: 'icons/badge-96.png', // ステータスバー用（形だけ白く表示される）
     tag: data.tag,
     data: { url: data.url || './' },
   }));
