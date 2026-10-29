@@ -14,9 +14,37 @@ const NOTIFY_DAYS_BEFORE = 14;
 const APP_URL = 'https://omoti12.github.io/team-calendar/';
 const CONTACT = 'mailto:noreply@example.com';
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || 'null');
-if (!serviceAccount) {
-  console.error('FIREBASE_SERVICE_ACCOUNT が設定されていません');
+// 貼り付けの時に前後へ余分な文字が入っても読めるように、最初の { … } だけを取り出して読む
+function parseServiceAccount(raw) {
+  const text = (raw || '').trim();
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (inString) {
+      if (c === '\\') i++;
+      else if (c === '"') inString = false;
+    } else if (c === '"') inString = true;
+    else if (c === '{') depth++;
+    else if (c === '}' && --depth === 0) {
+      if (start > 0 || i < text.length - 1) console.warn('鍵の前後に余分な文字があったので、鍵の部分だけを使います');
+      return JSON.parse(text.slice(start, i + 1));
+    }
+  }
+  return null;
+}
+
+let serviceAccount = null;
+try {
+  serviceAccount = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+} catch (err) {
+  console.error('FIREBASE_SERVICE_ACCOUNT を読み取れませんでした（中身が壊れている可能性があります）:', err.message);
+  process.exit(1);
+}
+if (!serviceAccount || !serviceAccount.private_key || !serviceAccount.project_id) {
+  console.error('FIREBASE_SERVICE_ACCOUNT に Firebase の鍵（JSON）が入っていません');
   process.exit(1);
 }
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
