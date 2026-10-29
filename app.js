@@ -379,11 +379,7 @@ function renderTasks(site) {
     date.value = task.date || '';
     qty.value = task.qty || '';
     doneDate.value = task.doneDate || '';
-    // 台数・人数の欄は、カッター・ダンプ・警備など数が要る項目（か、すでに入力がある項目）だけに出す
-    const paintQtyHint = () => {
-      qty.placeholder = qtyHint(title.value);
-      qty.closest('td').hidden = !qtyHint(title.value) && !qty.value;
-    };
+    const paintQtyHint = () => { qty.placeholder = qtyHint(title.value); };
     paintQtyHint();
 
     const warn = row.querySelector('.task-warn');
